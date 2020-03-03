@@ -1,13 +1,13 @@
 package main
 
 import (
-	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2"
+	_ "github.com/micro/go-micro/v2/client/selector"
+	log "github.com/micro/go-micro/v2/logger"
+	_ "github.com/micro/go-micro/v2/registry"
+	_ "github.com/micro/go-plugins/wrapper/select/roundrobin"
 	"tpush/srv/push/handler"
 	"tpush/srv/push/subscriber"
-	_ "github.com/micro/go-plugins/wrapper/select/roundrobin"
-	_ "github.com/micro/go-micro/v2/registry"
-	_ "github.com/micro/go-micro/v2/client/selector"
 
 	push "tpush/srv/push/proto/push"
 )

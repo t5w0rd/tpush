@@ -10,7 +10,7 @@ import (
 	push "tpush/srv/push/proto/push"
 )
 
-type Gateway struct{
+type Gateway struct {
 	PushCli push.PushService
 }
 

@@ -1,9 +1,10 @@
 package main
 
 import (
-	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2"
+	log "github.com/micro/go-micro/v2/logger"
 	"tpush/srv/gateway/handler"
+	"tpush/srv/gateway/plugins"
 	"tpush/srv/gateway/subscriber"
 
 	gateway "tpush/srv/gateway/proto/gateway"
@@ -11,17 +12,20 @@ import (
 )
 
 func main() {
+	wrapper := plugins.NewClientWrapper()
+
 	// New Service
 	service := micro.NewService(
 		micro.Name("tpush.srv.gateway"),
 		micro.Version("latest"),
+		micro.WrapClient(wrapper),
 	)
 
 	// Initialise service
 	service.Init()
 
 	// Register Handler
-	h := &handler.Gateway {
+	h := &handler.Gateway{
 		PushCli: push.NewPushService("tpush.srv.push", service.Client()),
 	}
 	gateway.RegisterGatewayHandler(service.Server(), h)

@@ -1,7 +1,7 @@
 package plugins
 
-
 import (
+	log "github.com/micro/go-micro/v2/logger"
 	"sync"
 
 	"github.com/micro/go-micro/v2/client"
@@ -11,19 +11,24 @@ import (
 	"context"
 )
 
-type roundrobin struct {
+type route struct {
 	sync.Mutex
 	rr map[string]int
 	client.Client
 }
 
-func (s *roundrobin) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+func (c *route) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
 	nOpts := append(opts, client.WithSelectOption(
 		// create a selector strategy
 		selector.WithStrategy(func(services []*registry.Service) selector.Next {
 			// flatten
 			var nodes []*registry.Node
-			for _, service := range services {
+			for i, service := range services {
+				log.Infof("req.Service: %s", req.Service())
+				log.Infof("service %d: %+v", i, service)
+				for j, node := range service.Nodes {
+					log.Infof("node %d: %+v", j, node)
+				}
 				nodes = append(nodes, service.Nodes...)
 			}
 
@@ -32,29 +37,29 @@ func (s *roundrobin) Call(ctx context.Context, req client.Request, rsp interface
 				if len(nodes) == 0 {
 					return nil, selector.ErrNoneAvailable
 				}
-				s.Lock()
+				c.Lock()
 				// get counter
-				rr := s.rr[req.Service()]
+				rr := c.rr[req.Service()]
 				// get node
 				node := nodes[rr%len(nodes)]
 				// increment
 				rr++
 				// save
-				s.rr[req.Service()] = rr
-				s.Unlock()
+				c.rr[req.Service()] = rr
+				c.Unlock()
 
 				return node, nil
 			}
 		}),
 	))
 
-	return s.Client.Call(ctx, req, rsp, nOpts...)
+	return c.Client.Call(ctx, req, rsp, nOpts...)
 }
 
 // NewClientWrapper is a wrapper which roundrobins requests
 func NewClientWrapper() client.Wrapper {
 	return func(c client.Client) client.Client {
-		return &roundrobin{
+		return &route{
 			rr:     make(map[string]int),
 			Client: c,
 		}
