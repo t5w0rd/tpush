@@ -13,4 +13,4 @@ test:
 
 .PHONY: docker
 docker:
-	docker build . -t 10.9.19.140/test/push-web:latest
+	CGO_ENABLED="0" GOOS="linux" docker build . -t 10.9.19.140/test/push-web:latest

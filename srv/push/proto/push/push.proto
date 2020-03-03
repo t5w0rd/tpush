@@ -8,10 +8,6 @@ service Push {
 	rpc PingPong(stream Ping) returns (stream Pong) {}
 }
 
-message Message {
-	string say = 1;
-}
-
 message Request {
 	string name = 1;
 }

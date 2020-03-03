@@ -25,6 +25,10 @@ func main() {
 	// register call handler
 	service.HandleFunc("/push/call", handler.PushCall)
 
+	// register stream handler
+	service.HandleFunc("/push/stream", handler.PushStream)
+	service.HandleFunc("/push/pingpong", handler.PushPingPong)
+
 	// run service
 	if err := service.Run(); err != nil {
 		log.Fatal(err)

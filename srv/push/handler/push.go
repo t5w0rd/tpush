@@ -24,7 +24,7 @@ func (e *Push) Stream(ctx context.Context, req *push.StreamingRequest, stream pu
 	for i := 0; i < int(req.Count); i++ {
 		log.Infof("Responding: %d", i)
 		if err := stream.Send(&push.StreamingResponse{
-			Count: int64(i),
+			Count: int64(i+1000),
 		}); err != nil {
 			return err
 		}
@@ -41,7 +41,7 @@ func (e *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) er
 			return err
 		}
 		log.Infof("Got ping %v", req.Stroke)
-		if err := stream.Send(&push.Pong{Stroke: req.Stroke}); err != nil {
+		if err := stream.Send(&push.Pong{Stroke: req.Stroke+1000}); err != nil {
 			return err
 		}
 	}
