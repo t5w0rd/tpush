@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/micro/go-micro/v2/client"
-	push "tpush/srv/push/proto/push"
 	log "github.com/micro/go-micro/v2/logger"
+	push "tpush/srv/push/proto/push"
 )
 
 func PushCall(w http.ResponseWriter, r *http.Request) {
@@ -194,8 +194,8 @@ func pingPongLoop(pushCli push.PushService, conn *websocket.Conn) error {
 	}
 
 	ret := make(chan error)
-	go serverPump(strPingPong, conn, ret);
-	clientPump(strPingPong, conn);
+	go serverPump(strPingPong, conn, ret)
+	clientPump(strPingPong, conn)
 
 	<-ret
 
