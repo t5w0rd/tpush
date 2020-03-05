@@ -48,13 +48,13 @@ func (e *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) er
 }
 
 // Session is a bidirectional stream handler called via client.Stream or the generated client code
-func (e *Push) Session(ctx context.Context, stream push.Push_SessionService) error {
+func (e *Push) Session(ctx context.Context, stream push.Push_SessionStream) error {
 	for {
 		req, err := stream.Recv()
 		if err != nil {
 			return err
 		}
-
+		_ = req
 	}
 }
 

@@ -7,6 +7,8 @@ import (
 )
 
 var (
+	Address string = "0.0.0.0:8080"
+
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
