@@ -55,8 +55,10 @@ func (c *client) close() {
 func (c *client) write(rsp *Response) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
+	if len(c.writeq) == 0 {
+		c.writeTimer.Reset(c.cycle)
+	}
 	c.writeq = append(c.writeq, rsp)
-	c.writeTimer.Reset(c.cycle)
 }
 
 func (c *client) swap() (rsps []*Response, closed bool) {
