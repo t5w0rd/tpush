@@ -48,7 +48,43 @@ func (e *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) er
 	}
 }
 
+type LoginReq struct {
+	Uid int64
+}
+
+type LoginRsp struct {
+	Msg string
+}
+
+type HelloReq struct {
+	Name string
+}
+
+type HelloRsp struct {
+	Say string
+}
+
 func (e *Push) Login(req *websocket.Request, rsp *websocket.Response) (id int64, err error) {
-	id = req.Data.(map[string]interface{})["uid"].(int64)
+	var loginReq LoginReq
+	if err := req.DecodeData(&loginReq); err != nil {
+		return 0, err
+	}
+	log.Debugf("Client has logged in succ, uid: %v", loginReq.Uid)
+	id = loginReq.Uid
+
+	rsp.EncodeData(&LoginRsp{"hello"})
+
 	return id, nil
+}
+
+
+func (e *Push) Hello(req *websocket.Request, rsp *websocket.Response) (err error) {
+	var helloReq HelloReq
+	if err := req.DecodeData(&helloReq); err != nil {
+		return err
+	}
+
+	rsp.EncodeData(&HelloRsp{"Hello, " + helloReq.Name})
+
+	return nil
 }

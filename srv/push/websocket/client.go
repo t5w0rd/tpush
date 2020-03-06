@@ -16,8 +16,10 @@ type client struct {
 	conn   *websocket.Conn
 	id     int64
 	writeq []*Response
+	writeTimer *time.Timer
 	mtx    *sync.Mutex
 	cycle  time.Duration
+	closed bool
 }
 
 func newClient(svc *Service, conn *websocket.Conn) *client {
@@ -28,32 +30,51 @@ func newClient(svc *Service, conn *websocket.Conn) *client {
 		writeq: make([]*Response, 0, 100),
 		mtx:    &sync.Mutex{},
 		cycle:  ClientCycle,
+		closed: false,
 	}
 	return c
 }
 
 func (c *client) close() {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	if c.closed {
+		return
+	}
+
 	c.conn.Close()
 	if c.id > 0 {
 		c.svc.hb.unregister(c)
 	}
+	if c.writeTimer != nil {
+		c.writeTimer.Reset(0)
+	}
+	c.closed = true
 }
 
 func (c *client) write(rsp *Response) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	c.writeq = append(c.writeq, rsp)
+	c.writeTimer.Reset(c.cycle)
 }
 
-func (c *client) swap() []*Response {
+func (c *client) swap() (rsps []*Response, closed bool) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	ret := c.writeq
+	if c.closed {
+		return nil, true
+	}
+	if len(c.writeq) == 0 {
+		return nil, false
+	}
+	rsps = c.writeq
 	c.writeq = make([]*Response, 0, 100)
-	return ret
+	return rsps, false
 }
 
 func (c *client) readPump() {
+	log.Debug("readPump start")
 	defer func() {
 		c.close()
 		log.Debug("readPump complete")
@@ -84,17 +105,29 @@ func (c *client) readPump() {
 		}
 
 		for _, req := range reqs {
-			var rsp Response
+			if req == nil {
+				log.Error("Nil request")
+				return
+			}
+			rsp := &Response{
+				Cmd: req.Cmd,
+				Seq: req.Seq,
+			}
 			switch req.Cmd {
 			case "login":
+				if c.id > 0 {
+					log.Error("Duplicate login")
+					return
+				}
 				close(loginDone)
-				if id, err := c.svc.loginHandler(req, &rsp); err != nil {
+				if id, err := c.svc.loginHandler(req, rsp); err != nil {
 					// 发生错误关闭连接
 					log.Error(err)
 					return
 				} else {
 					// 登陆成功
 					c.id = id
+					log.Debug("Client id:", c.id)
 				}
 			default:
 				if c.id <= 0 {
@@ -104,7 +137,7 @@ func (c *client) readPump() {
 				}
 
 				if handler, ok := c.svc.mux[req.Cmd]; ok {
-					if err := handler(req, &rsp); err != nil {
+					if err := handler(req, rsp); err != nil {
 						// 发生错误关闭连接
 						log.Error(err)
 						return
@@ -115,23 +148,35 @@ func (c *client) readPump() {
 					return
 				}
 			}
-			c.write(&rsp)
+			c.write(rsp)
 		}
 	}
 }
 
 func (c *client) writePump() {
-	ticker := time.NewTicker(c.cycle)
+	log.Debug("writePump start")
+	c.writeTimer = time.NewTimer(c.cycle)
+
 	defer func() {
-		ticker.Stop()
+		c.writeTimer.Stop()
 		c.close()
 		log.Debug("writePump complete")
 	}()
 
 	for {
 		select {
-		case <-ticker.C:
-			rsps := c.swap()
+		case <-c.writeTimer.C:
+			rsps, closed := c.swap()
+			if closed {
+				return
+			}
+
+			if rsps == nil {
+				log.Debug("Empty sendq")
+				continue
+			}
+
+			log.Debug("Send Response:", rsps)
 			if err := c.conn.WriteJSON(rsps); err != nil {
 				return
 			}

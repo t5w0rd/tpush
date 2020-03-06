@@ -3,6 +3,7 @@ package websocket
 import (
 	"github.com/gorilla/websocket"
 	log "github.com/micro/go-micro/v2/logger"
+	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"time"
 )
@@ -27,11 +28,19 @@ type Request struct {
 	Data interface{}
 }
 
+func (req *Request) DecodeData(output interface{}) error {
+	return mapstructure.Decode(req.Data, output)
+}
+
 type Response struct {
 	Cmd  string
 	Seq  int64
 	Code int32
 	Data interface{}
+}
+
+func (rsp *Response) EncodeData(input interface{}) {
+	rsp.Data = input
 }
 
 type Service struct {
@@ -83,11 +92,13 @@ func (s *Service) Run() error {
 	// 注册web服务处理器
 	http.HandleFunc("/push", s.handleStream)
 
+	http.Handle("/", http.FileServer(http.Dir("html")))
+
 	// 启动web服务
 	log.Infof("Server [web] Listening on %s", Address)
 	err := http.ListenAndServe(Address, nil)
 	if err != nil {
-		log.Fatal("ListenAndServe err: ", err)
+		log.Fatal("Server [web] Listening err: ", err)
 		return err
 	}
 	return nil

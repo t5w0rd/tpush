@@ -14,6 +14,12 @@ import (
 )
 
 func main() {
+	if err := log.Init(
+		log.WithLevel(log.DebugLevel),
+	); err != nil {
+		log.Fatal(err)
+		return
+	}
 	// New Service
 	service := micro.NewService(
 		micro.Name("tpush.srv.push"),
@@ -60,6 +66,7 @@ func main() {
 	// websocket service
 	service2 := websocket.NewService()
 	service2.RegisterLoginHandler(h.Login)
+	service2.RegisterCommandHandler("hello", h.Hello)
 	service2Done := make(chan struct{})
 
 	go func() {
