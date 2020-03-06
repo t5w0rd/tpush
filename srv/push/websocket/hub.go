@@ -10,17 +10,17 @@ type channel struct {
 
 func newChannel(name string) *channel {
 	c := &channel{
-		name: name,
+		name:    name,
 		clients: make(map[clientid]bool),
 	}
 	return c
 }
 
 type hub struct {
-	reg      chan *client  // 注册管道
-	unreg    chan *client  // 注销管道
-	clients  map[clientid]*client  // 所有登陆的客户端
-	channels map[channelid]*channel  // 频道
+	reg      chan *client           // 注册管道
+	unreg    chan *client           // 注销管道
+	clients  map[clientid]*client   // 所有登陆的客户端
+	channels map[channelid]*channel // 频道
 }
 
 func newHub() *hub {
@@ -44,9 +44,9 @@ func (h *hub) unregister(cli *client) {
 func (h *hub) run() {
 	for {
 		select {
-		case cli := <- h.reg:
+		case cli := <-h.reg:
 			h.clients[cli.id] = cli
-		case cli := <- h.unreg:
+		case cli := <-h.unreg:
 			delete(h.clients, cli.id)
 		}
 	}

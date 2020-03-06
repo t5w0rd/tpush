@@ -7,7 +7,7 @@ type RedisOptions struct {
 
 var (
 	DefaultCacheOptions RedisOptions = RedisOptions{
-		Address: "10.8.9.100",
+		Address:  "10.8.9.100",
 		Password: "6379",
 	}
 )

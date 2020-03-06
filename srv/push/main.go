@@ -10,7 +10,7 @@ import (
 	"tpush/srv/push/handler"
 	push "tpush/srv/push/proto/push"
 	"tpush/srv/push/subscriber"
-	"tpush/srv/websocket"
+	"tpush/srv/push/websocket"
 )
 
 func main() {
@@ -20,10 +20,10 @@ func main() {
 		micro.Version("latest"),
 		micro.Flags(
 			&cli.StringFlag{
-				Name:  "ws_address",
-				Usage: "Set the websocket address",
-				EnvVars: []string{"MICRO_WS_ADDRESS"},
-				Value: websocket.Address,
+				Name:    "tpush_web_address",
+				Usage:   "Set the web server address",
+				EnvVars: []string{"TPUSH_WEB_ADDRESS"},
+				Value:   websocket.Address,
 			},
 		),
 	)
@@ -31,7 +31,7 @@ func main() {
 	// Initialise service
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
-			if f := c.String("ws_address"); len(f) > 0 {
+			if f := c.String("tpush_web_address"); len(f) > 0 {
 				websocket.Address = f
 			}
 
@@ -39,14 +39,38 @@ func main() {
 		}),
 	)
 
+	h := &handler.Push{}
+
 	// Register Handler
-	push.RegisterPushHandler(service.Server(), new(handler.Push))
+	push.RegisterPushHandler(service.Server(), h)
 
 	// Register Struct as Subscriber
 	micro.RegisterSubscriber("tpush.srv.push", service.Server(), new(subscriber.Push))
 
+	serviceDone := make(chan struct{})
+
 	// Run service
-	if err := service.Run(); err != nil {
-		log.Fatal(err)
+	go func() {
+		if err := service.Run(); err != nil {
+			log.Fatal(err)
+		}
+		close(serviceDone)
+	}()
+
+	// websocket service
+	service2 := websocket.NewService()
+	service2.RegisterLoginHandler(h.Login)
+	service2Done := make(chan struct{})
+
+	go func() {
+		if err := service2.Run(); err != nil {
+			log.Fatal(err)
+		}
+		close(service2Done)
+	}()
+
+	select {
+	case <-serviceDone:
+	case <-service2Done:
 	}
 }

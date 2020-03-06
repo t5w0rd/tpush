@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"tpush/srv/push/websocket"
 
 	log "github.com/micro/go-micro/v2/logger"
 
@@ -47,40 +48,7 @@ func (e *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) er
 	}
 }
 
-// Session is a bidirectional stream handler called via client.Stream or the generated client code
-func (e *Push) Session(ctx context.Context, stream push.Push_SessionStream) error {
-	for {
-		req, err := stream.Recv()
-		if err != nil {
-			return err
-		}
-		_ = req
-	}
+func (e *Push) Login(req *websocket.Request, rsp *websocket.Response) (id int64, err error) {
+	id = req.Data.(map[string]interface{})["uid"].(int64)
+	return id, nil
 }
-
-type MidQueue = chan int64
-type UidMidMap = map[int64] MidQueue
-
-type channel struct {
-	Name      string
-	UserMsgMap UidMidMap
-	Freq      float64
-}
-
-func NewChannel(name string, freq float64) (ch *channel) {
-	ch = &channel{
-		Name: name,
-		UserMsgMap: make(UidMidMap),
-		Freq: freq,
-	}
-	return ch
-}
-
-func (c *channel) pack_pusher() {
-
-}
-
-type Pusher struct {
-	chanMap map[string]UidMidMap
-}
-

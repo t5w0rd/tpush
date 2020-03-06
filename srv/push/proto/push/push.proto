@@ -6,7 +6,6 @@ service Push {
 	rpc Call(Request) returns (Response) {}
 	rpc Stream(StreamingRequest) returns (stream StreamingResponse) {}
 	rpc PingPong(stream Ping) returns (stream Pong) {}
-	rpc Session(stream SessionRequest) returns (stream SessionResponse) {}
 }
 
 message Message {
@@ -35,26 +34,4 @@ message Ping {
 
 message Pong {
 	int64 stroke = 1;
-}
-
-
-// cmd: login
-message LoginReq {
-}
-
-message LoginRsp {
-}
-
-message SessionRequest {
-	int64 seq = 1;
-	string cmd = 2;
-	int64 uid = 3;
-	LoginReq login = 4;
-}
-
-message SessionResponse {
-	int64 seq = 1;
-	string cmd = 2;
-	int64 code = 3;
-	LoginRsp login = 4;
 }
