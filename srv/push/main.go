@@ -3,10 +3,7 @@ package main
 import (
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
-	_ "github.com/micro/go-micro/v2/client/selector"
 	log "github.com/micro/go-micro/v2/logger"
-	_ "github.com/micro/go-micro/v2/registry"
-	_ "github.com/micro/go-plugins/wrapper/select/roundrobin"
 	"net/http"
 	"time"
 	"tpush/internal/websocket"

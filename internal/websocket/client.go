@@ -129,18 +129,18 @@ func (c *client) writePump() {
 	for {
 		select {
 		case <-c.writeTimer.C:
-			rsps, closed := c.swap()
+			rspDatas, closed := c.swap()
 			if closed {
 				return
 			}
 
-			if rsps == nil {
+			if rspDatas == nil {
 				log.Debug("empty sendq")
 				continue
 			}
 
-			log.Debugf("sent Response: %v", rsps)
-			if err := c.conn.WriteJSON(rsps); err != nil {
+			log.Debugf("sent Response: %v", rspDatas)
+			if err := c.conn.WriteJSON(rspDatas); err != nil {
 				return
 			}
 		}
