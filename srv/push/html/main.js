@@ -1,8 +1,8 @@
-var wsUri;
-var output;
-var count;
-var ws;
-var seq = 1001;
+let wsUri;
+let output;
+let count;
+let ws;
+let seq = 1001;
 
 function genseq() {
   return seq++;
@@ -13,44 +13,45 @@ window.addEventListener("load", function(evt) {
   output = document.getElementById("output");
   count  = document.getElementById("count");
 
-  var print = function(message) {
-    var d       = document.createElement("div");
+  let print = function (message) {
+    let d = document.createElement("div");
     d.innerHTML = message;
     output.appendChild(d);
   };
 
-  var parse = function(evt) {
+  let parse = function (evt) {
     JSON.parse(evt.data);
   };
 
-  var newSocket = function() {
-    ws           = new WebSocket(wsUri);
-    var login = function() {
-      var req = {
+  let newSocket = function () {
+    ws = new WebSocket(wsUri);
+    let login = function () {
+      let req = {
         cmd: "login",
         seq: genseq(),
+        immed: true,
         data: {
           uid: 1001
         }
       };
-      var s = JSON.stringify([req]);
+      let s = JSON.stringify([req]);
       console.log("send:", s);
       ws.send(s);
     };
 
-    ws.onopen = function(evt) {
+    ws.onopen = function (evt) {
       print('<span style="color: green;">OnOpen</span>');
       login();
     };
-    ws.onclose = function(evt) {
+    ws.onclose = function (evt) {
       print('<span style="color: red;">OnClose</span>');
       ws = null;
     };
-    ws.onmessage = function(evt) {
+    ws.onmessage = function (evt) {
       print('<span style="color: blue;">OnMmesage</span>');
       console.log("recv:", evt.data);
     };
-    ws.onerror = function(evt) {
+    ws.onerror = function (evt) {
       print('<span style="color: red;">OnError</span>');
     };
   };
@@ -62,16 +63,14 @@ window.addEventListener("load", function(evt) {
       return false;
     }
 
-    var req = [
-      {
-        cmd: "hello",
-        seq: genseq(),
-        data: {
-          name: "t5w0rd"
-        }
+    let req = {
+      cmd: "hello",
+      seq: genseq(),
+      data: {
+        name: "t5w0rd"
       }
-    ];
-    s = JSON.stringify(req);
+    };
+    let s = JSON.stringify([req]);
     print('<span style="color: blue;">Sent request: </span>' + s);
     console.log("send:", s);
     ws.send(s);

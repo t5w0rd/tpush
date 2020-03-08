@@ -2,35 +2,36 @@ package handler
 
 import (
 	"context"
-	"tpush/srv/push/websocket"
+	"time"
+	"tpush/internal/websocket"
 
 	log "github.com/micro/go-micro/v2/logger"
 
 	push "tpush/srv/push/proto/push"
 )
 
-type Push struct{}
+type Push struct {
+}
 
 // Call is a single request handler called via client.Call or the generated client code
 func (e *Push) Call(ctx context.Context, req *push.Request, rsp *push.Response) error {
-	log.Info("Received Push.Call request")
+	log.Info("received Push.Call request")
 	rsp.Msg = "Hello " + req.Name
 	return nil
 }
 
 // Stream is a server side stream handler called via client.Stream or the generated client code
 func (e *Push) Stream(ctx context.Context, req *push.StreamingRequest, stream push.Push_StreamStream) error {
-	log.Infof("Received Push.Stream request with count: %d", req.Count)
+	log.Infof("received Push.Stream request with count: %d", req.Count)
 
 	for i := 0; i < int(req.Count); i++ {
-		log.Infof("Responding: %d", i)
+		log.Infof("responding: %d", i)
 		if err := stream.Send(&push.StreamingResponse{
 			Count: int64(i + 1000),
 		}); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -41,7 +42,7 @@ func (e *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) er
 		if err != nil {
 			return err
 		}
-		log.Infof("Got ping %v", req.Stroke)
+		log.Infof("got ping %v", req.Stroke)
 		if err := stream.Send(&push.Pong{Stroke: req.Stroke + 1000}); err != nil {
 			return err
 		}
@@ -49,42 +50,67 @@ func (e *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) er
 }
 
 type LoginReq struct {
-	Uid int64
+	Uid int64 `json:"uid"`
 }
 
 type LoginRsp struct {
-	Msg string
+	Msg string `json:"msg"`
 }
 
 type HelloReq struct {
-	Name string
+	Name string `json:"name"`
 }
 
 type HelloRsp struct {
-	Say string
+	Say string `json:"say"`
 }
 
-func (e *Push) Login(req *websocket.Request, rsp *websocket.Response) (id int64, err error) {
+type loginDoneKey struct{}
+
+func (e *Push) OnOpen(ctx context.Context, closeFunc func()) (context.Context, error) {
+	loginDone := make(chan int64)
+	ctx = context.WithValue(ctx, loginDoneKey{}, loginDone)
+
+	go func() {
+		defer log.Debug("waitLogin complete")
+		select {
+		case id := <-loginDone:
+			log.Debugf("client logged in succ, id: %v", id)
+			return
+		case <-time.After(time.Second * 2):
+			log.Error("client hasnot logged in for a long time")
+			closeFunc()
+			return
+		}
+	}()
+	return ctx, nil
+}
+
+func (e *Push) OnClose(ctx context.Context) {
+}
+
+func (e *Push) Login(req websocket.Request, rsp websocket.Response) error {
 	var loginReq LoginReq
 	if err := req.DecodeData(&loginReq); err != nil {
-		return 0, err
+		return err
 	}
-	log.Debugf("Client has logged in succ, uid: %v", loginReq.Uid)
-	id = loginReq.Uid
+	id := loginReq.Uid
 
-	rsp.EncodeData(&LoginRsp{"hello"})
+	loginDone := req.ContextValue(loginDoneKey{}).(chan int64)
+	loginDone <- id
 
-	return id, nil
+	rsp.EncodeData(&LoginRsp{"Successfully"}, 0, "")
+
+	return nil
 }
 
-
-func (e *Push) Hello(req *websocket.Request, rsp *websocket.Response) (err error) {
+func (e *Push) Hello(req websocket.Request, rsp websocket.Response) error {
 	var helloReq HelloReq
 	if err := req.DecodeData(&helloReq); err != nil {
 		return err
 	}
 
-	rsp.EncodeData(&HelloRsp{"Hello, " + helloReq.Name})
+	rsp.EncodeData(&HelloRsp{"Hello, " + helloReq.Name}, 0, "")
 
 	return nil
 }
