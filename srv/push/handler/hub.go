@@ -1,4 +1,4 @@
-package channelpusher
+package handler
 
 import (
 	"sync"
@@ -8,28 +8,28 @@ type clientid = int64
 type channelid = string
 
 type clientData struct {
-	id     clientid
-	client interface{}
-	channels sync.Map  //map[channelid]bool
+	id       clientid
+	client   interface{}
+	channels sync.Map //map[channelid]bool
 }
 
 type channel struct {
-	id    channelid
-	clients sync.Map  //map[clientid]bool
+	id      channelid
+	clients sync.Map //map[clientid]bool
 }
 
 type Hub struct {
-	reg      chan *clientData         // 注册管道
-	unreg    chan clientid            // 注销管道
-	clients  sync.Map  //map[clientid]*clientData // 所有登陆的客户端
-	channels sync.Map  //map[channelid]*channel   // 频道
+	reg        chan *clientData // 注册管道
+	unreg      chan clientid    // 注销管道
+	clients    sync.Map         //map[clientid]*clientData // 所有登陆的客户端
+	channels   sync.Map         //map[channelid]*channel   // 频道
 	newChannel *channel
 }
 
 func NewHub() *Hub {
 	h := &Hub{
-		reg:      make(chan *clientData, 100),
-		unreg:    make(chan clientid, 100),
+		reg:   make(chan *clientData, 100),
+		unreg: make(chan clientid, 100),
 		//clients:  make(map[clientid]*clientData),
 		//channels: make(map[channelid]*channel),
 	}
@@ -39,7 +39,7 @@ func NewHub() *Hub {
 func (h *Hub) Register(id clientid, cli interface{}) {
 	//h.reg <- &clientData{id, cli}
 	h.clients.Store(id, &clientData{
-		id: id,
+		id:     id,
 		client: cli,
 	})
 }
@@ -49,7 +49,7 @@ func (h *Hub) Unregister(id clientid) {
 	if cli_, ok := h.clients.Load(id); ok {
 		h.clients.Delete(id)
 		cli := cli_.(*clientData)
-		_=cli//cli.channels.Range()
+		_ = cli //cli.channels.Range()
 	}
 }
 
@@ -97,10 +97,10 @@ func (h *Hub) Run() {
 	for {
 		select {
 		//case cliData := <-h.reg:
-			//h.clients[cliData.id] = cliData
+		//h.clients[cliData.id] = cliData
 
 		//case id := <-h.unreg:
-			//delete(h.clients, id)
+		//delete(h.clients, id)
 		}
 	}
 }

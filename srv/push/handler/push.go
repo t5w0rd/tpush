@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 	"tpush/internal/websocket"
 
@@ -54,7 +55,7 @@ type LoginReq struct {
 }
 
 type LoginRsp struct {
-	Msg string `json:"msg"`
+	Id int64 `json:"id"`
 }
 
 type HelloReq struct {
@@ -67,9 +68,26 @@ type HelloRsp struct {
 
 type loginDoneKey struct{}
 
-func (e *Push) OnOpen(ctx context.Context, closeFunc func()) (context.Context, error) {
+type clientDataKey struct{}
+
+var (
+	cliId int64 = 0
+)
+
+func genid() int64 {
+	return atomic.AddInt64(&cliId, 1)
+}
+
+type ClientData struct {
+	Id int64
+}
+
+func (e *Push) OnOpen(cli websocket.Client) error {
 	loginDone := make(chan int64)
-	ctx = context.WithValue(ctx, loginDoneKey{}, loginDone)
+	cli.AddContextValue(loginDoneKey{}, loginDone)
+	cli.AddContextValue(clientDataKey{}, &ClientData{
+		Id: genid(),
+	})
 
 	go func() {
 		defer log.Debug("waitLogin complete")
@@ -79,14 +97,14 @@ func (e *Push) OnOpen(ctx context.Context, closeFunc func()) (context.Context, e
 			return
 		case <-time.After(time.Second * 2):
 			log.Error("client hasnot logged in for a long time")
-			closeFunc()
+			cli.Close()
 			return
 		}
 	}()
-	return ctx, nil
+	return nil
 }
 
-func (e *Push) OnClose(ctx context.Context) {
+func (e *Push) OnClose(cli websocket.Client) {
 }
 
 func (e *Push) Login(req websocket.Request, rsp websocket.Response) error {
@@ -96,10 +114,14 @@ func (e *Push) Login(req websocket.Request, rsp websocket.Response) error {
 	}
 	id := loginReq.Uid
 
-	loginDone := req.ContextValue(loginDoneKey{}).(chan int64)
+	loginDone := req.Client().ContextValue(loginDoneKey{}).(chan int64)
 	loginDone <- id
 
-	rsp.EncodeData(&LoginRsp{"Successfully"}, 0, "")
+	clientData := req.Client().ContextValue(clientDataKey{}).(*ClientData)
+
+	rsp.EncodeData(&LoginRsp{
+		Id: clientData.Id,
+	}, 0, "")
 
 	return nil
 }

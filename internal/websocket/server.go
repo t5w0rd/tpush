@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"context"
 	"fmt"
 	"github.com/gorilla/websocket"
 	log "github.com/micro/go-micro/v2/logger"
@@ -22,8 +21,8 @@ type Request interface {
 	Command() string
 	Sequence() int64
 	DecodeData(data interface{}) error
-	ContextValue(key interface{}) interface{}
-	Client() interface{}
+	//ContextValue(key interface{}) interface{}
+	Client() Client
 }
 
 type Response interface {
@@ -50,7 +49,7 @@ type request struct {
 	cli  *client
 }
 
-func (req *request) Client() interface{} {
+func (req *request) Client() Client {
 	return req.cli
 }
 
@@ -66,9 +65,9 @@ func (req *request) DecodeData(data interface{}) error {
 	return mapstructure.Decode(req.data.Data, data)
 }
 
-func (req *request) ContextValue(key interface{}) interface{} {
-	return req.cli.ctx.Value(key)
-}
+//func (req *request) ContextValue(key interface{}) interface{} {
+//	return req.cli.ctx.Value(key)
+//}
 
 type response struct {
 	data *ResponseData
@@ -80,8 +79,8 @@ func (rsp *response) EncodeData(data interface{}, code int32, msg string) {
 	rsp.data.Data = data
 }
 
-type OpenHandler func(ctx context.Context, closeFunc func()) (context.Context, error)
-type CloseHandler func(ctx context.Context)
+type OpenHandler func(cli Client) error
+type CloseHandler func(cli Client)
 type HandlerFunc func(req Request, rsp Response) error
 
 func Error(rsp Response, code int32, msg string, closeConnection bool) error {

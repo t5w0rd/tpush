@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+type Client interface {
+	ContextValue(key interface{}) interface{}
+	AddContextValue(key, value interface{})
+	Close()
+}
+
 type client struct {
 	svc        *server
 	conn       *websocket.Conn
@@ -20,7 +26,19 @@ type client struct {
 	closed     bool
 }
 
-func (c *client) close() {
+func (c *client) ContextValue(key interface{}) interface{} {
+	return c.ctx.Value(key)
+}
+
+func (c *client) AddContextValue(key, value interface{}) {
+	c.ctx = context.WithValue(c.ctx, key, value)
+}
+
+func (c *client) Close() {
+	c.conn.Close()
+}
+
+func (c *client) shutdown() {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	if c.closed {
@@ -29,7 +47,7 @@ func (c *client) close() {
 
 	c.conn.Close()
 	c.writeTimer.Reset(0)
-	c.svc.closeHandler(c.ctx)
+	c.svc.closeHandler(c)
 	c.closed = true
 }
 
@@ -63,16 +81,12 @@ func (c *client) swap() (rsps []*ResponseData, closed bool) {
 func (c *client) run() error {
 	log.Debug("run start")
 	defer func() {
-		c.close()
+		c.shutdown()
 		log.Debug("run complete")
 	}()
 
-	if ctx, err := c.svc.openHandler(c.ctx, func() {
-		c.conn.Close()
-	}); err != nil {
+	if err := c.svc.openHandler(c); err != nil {
 		return err
-	} else {
-		c.ctx = ctx
 	}
 
 	go c.writePump()
@@ -122,7 +136,7 @@ func (c *client) writePump() {
 	log.Debug("writePump start")
 	defer func() {
 		c.writeTimer.Stop()
-		c.close()
+		c.shutdown()
 		log.Debug("writePump complete")
 	}()
 
