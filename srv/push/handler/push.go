@@ -2,12 +2,9 @@ package handler
 
 import (
 	"context"
-	"sync/atomic"
 	"time"
 	"tpush/internal/websocket"
-
 	log "github.com/micro/go-micro/v2/logger"
-
 	push "tpush/srv/push/proto/push"
 )
 
@@ -70,12 +67,8 @@ type loginDoneKey struct{}
 
 type clientDataKey struct{}
 
-var (
-	cliId int64 = 0
-)
-
-func genid() int64 {
-	return atomic.AddInt64(&cliId, 1)
+type clientData struct {
+	id int64
 }
 
 func (e *Push) OnOpen(cli websocket.Client) error {

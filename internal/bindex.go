@@ -5,14 +5,14 @@ import "sync"
 type set = map[interface{}]struct{}
 
 type BIndex struct {
-	sync.RWMutex
+	mu sync.RWMutex
 	userToTagSet map[interface{}]set // map[key] map[key2]struct{}
 	tagToUserSet map[interface{}]set // map[key2] map[key]struct{}
 }
 
 func (bi *BIndex) AddUserTag(user, tag interface{}) {
-	bi.Lock()
-	defer bi.Unlock()
+	bi.mu.Lock()
+	defer bi.mu.Unlock()
 
 	// 给用户user添加标签tag
 
@@ -36,8 +36,8 @@ func (bi *BIndex) AddUserTag(user, tag interface{}) {
 }
 
 func (bi *BIndex) RemoveUserTag(user, tag interface{}) {
-	bi.Lock()
-	defer bi.Unlock()
+	bi.mu.Lock()
+	defer bi.mu.Unlock()
 
 	// 正向索引
 	tagSet, ok := bi.userToTagSet[user]
@@ -63,8 +63,8 @@ func (bi *BIndex) RemoveUserTag(user, tag interface{}) {
 }
 
 func (bi *BIndex) Tags(user interface{}, output interface{}) bool {
-	bi.RLock()
-	defer bi.RUnlock()
+	bi.mu.RLock()
+	defer bi.mu.RUnlock()
 
 	// 正向索引
 	tagSet, ok := bi.userToTagSet[user]
@@ -91,8 +91,8 @@ func (bi *BIndex) Tags(user interface{}, output interface{}) bool {
 }
 
 func (bi *BIndex) Users(tag interface{}, output interface{}) bool {
-	bi.RLock()
-	defer bi.RUnlock()
+	bi.mu.RLock()
+	defer bi.mu.RUnlock()
 
 	// 反向索引
 	userSet, ok := bi.tagToUserSet[tag]
@@ -104,7 +104,7 @@ func (bi *BIndex) Users(tag interface{}, output interface{}) bool {
 	switch output.(type) {
 	case *[]interface{}:
 		users := output.(*[]interface{})
-		if size := len(userSet); len(*users) < size {
+		if size := len(userSet); cap(*users) < size {
 			*users = make([]interface{}, 0, size)
 		} else {
 			*users = (*users)[:0]
@@ -119,8 +119,8 @@ func (bi *BIndex) Users(tag interface{}, output interface{}) bool {
 }
 
 func (bi *BIndex) AllTags(output interface{}) bool {
-	bi.RLock()
-	defer bi.RUnlock()
+	bi.mu.RLock()
+	defer bi.mu.RUnlock()
 
 	switch output.(type) {
 	case *[]interface{}:
@@ -140,8 +140,8 @@ func (bi *BIndex) AllTags(output interface{}) bool {
 }
 
 func (bi *BIndex) AllUsers(output interface{}) bool {
-	bi.RLock()
-	defer bi.RUnlock()
+	bi.mu.RLock()
+	defer bi.mu.RUnlock()
 
 	switch output.(type) {
 	case *[]interface{}:
@@ -161,8 +161,8 @@ func (bi *BIndex) AllUsers(output interface{}) bool {
 }
 
 func (bi *BIndex) RemoveUser(user interface{}) {
-	bi.Lock()
-	defer bi.Unlock()
+	bi.mu.Lock()
+	defer bi.mu.Unlock()
 
 	// 正向索引
 	tagSet, ok := bi.userToTagSet[user]
@@ -183,8 +183,8 @@ func (bi *BIndex) RemoveUser(user interface{}) {
 }
 
 func (bi *BIndex) RemoveTag(tag interface{}) {
-	bi.Lock()
-	defer bi.Unlock()
+	bi.mu.Lock()
+	defer bi.mu.Unlock()
 
 	// 反向索引
 	userSet, ok := bi.tagToUserSet[tag]

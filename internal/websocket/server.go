@@ -105,8 +105,8 @@ func UnsupportedCommandHandler() HandlerFunc {
 }
 
 type ServeMux struct {
-	mtx sync.RWMutex
-	m   map[string]HandlerFunc
+	mu sync.RWMutex
+	m  map[string]HandlerFunc
 }
 
 func NewServeMux() *ServeMux {
@@ -114,8 +114,8 @@ func NewServeMux() *ServeMux {
 }
 
 func (mux *ServeMux) HandleFunc(cmd string, handler HandlerFunc) {
-	mux.mtx.Lock()
-	defer mux.mtx.Unlock()
+	mux.mu.Lock()
+	defer mux.mu.Unlock()
 
 	if cmd == "" {
 		panic("http: invalid pattern")
@@ -134,8 +134,8 @@ func (mux *ServeMux) HandleFunc(cmd string, handler HandlerFunc) {
 }
 
 func (mux *ServeMux) Handler(cmd string) (h HandlerFunc) {
-	mux.mtx.RLock()
-	defer mux.mtx.RUnlock()
+	mux.mu.RLock()
+	defer mux.mu.RUnlock()
 
 	if h, exist := mux.m[cmd]; exist {
 		return h
