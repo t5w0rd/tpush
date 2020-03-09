@@ -78,15 +78,11 @@ func genid() int64 {
 	return atomic.AddInt64(&cliId, 1)
 }
 
-type ClientData struct {
-	Id int64
-}
-
 func (e *Push) OnOpen(cli websocket.Client) error {
 	loginDone := make(chan int64)
 	cli.AddContextValue(loginDoneKey{}, loginDone)
-	cli.AddContextValue(clientDataKey{}, &ClientData{
-		Id: genid(),
+	cli.AddContextValue(clientDataKey{}, &clientData{
+		id: genid(),
 	})
 
 	go func() {
@@ -117,10 +113,10 @@ func (e *Push) Login(req websocket.Request, rsp websocket.Response) error {
 	loginDone := req.Client().ContextValue(loginDoneKey{}).(chan int64)
 	loginDone <- id
 
-	clientData := req.Client().ContextValue(clientDataKey{}).(*ClientData)
+	clientData := req.Client().ContextValue(clientDataKey{}).(*clientData)
 
 	rsp.EncodeData(&LoginRsp{
-		Id: clientData.Id,
+		Id: clientData.id,
 	}, 0, "")
 
 	return nil

@@ -2,14 +2,15 @@ package handler
 
 import (
 	"sync"
+	"tpush/internal/websocket"
 )
 
 type clientid = int64
 type channelid = string
 
 type clientData struct {
+	client   websocket.Client
 	id       clientid
-	client   interface{}
 	channels sync.Map //map[channelid]bool
 }
 
@@ -36,7 +37,7 @@ func NewHub() *Hub {
 	return h
 }
 
-func (h *Hub) Register(id clientid, cli interface{}) {
+func (h *Hub) Register(id clientid, cli websocket.Client) {
 	//h.reg <- &clientData{id, cli}
 	h.clients.Store(id, &clientData{
 		id:     id,
@@ -80,7 +81,7 @@ func (h *Hub) ExitChannel(id clientid, cid channelid) {
 	}
 }
 
-func (h *Hub) ChannelClients(cid channelid) (clis []interface{}) {
+func (h *Hub) ChannelClients(cid channelid) (clis []websocket.Client) {
 	if ch_, ok := h.channels.Load(cid); ok {
 		ch := ch_.(*channel)
 
