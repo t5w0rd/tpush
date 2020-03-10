@@ -9,16 +9,20 @@ import (
 	"time"
 )
 
-type Client interface {
-	ContextValue(key interface{}) interface{}
-	AddContextValue(key, value interface{})
-	Close()
+type Writer interface {
 	Write(cmd string, seq int64, data interface{}, code int32, msg string, immediately bool)
 }
 
+type Client interface {
+	Writer
+	ContextValue(key interface{}) interface{}
+	AddContextValue(key, value interface{})
+	Close()
+}
+
 type ClientGroup interface {
+	Writer
 	Clients(output *[]Client)
-	Write(cmd string, seq int64, data interface{}, code int32, msg string, immediately bool)
 }
 
 type clientGroup struct {
@@ -46,7 +50,7 @@ func (cg *clientGroup) Write(cmd string, seq int64, data interface{}, code int32
 	}
 	for _, c := range cg.clients {
 		cli := c.(*client)
-		cli.write(rspData, immediately)
+		cli.write(rspData, false)
 	}
 }
 
@@ -82,15 +86,17 @@ func (c *client) Close() {
 
 func (c *client) shutdown() {
 	c.mtx.Lock()
-	defer c.mtx.Unlock()
 	if c.closed {
+		c.mtx.Unlock()
 		return
 	}
 
 	c.conn.Close()
 	c.writeTimer.Reset(0)
-	c.svc.closeHandler(c)
 	c.closed = true
+	c.mtx.Unlock()
+
+	c.svc.closeHandler(c)
 }
 
 func (c *client) Write(cmd string, seq int64, data interface{}, code int32, msg string, immediately bool) {

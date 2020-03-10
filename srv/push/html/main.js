@@ -6,7 +6,7 @@ let clientid;
 let uid;
 let chan;
 let cmd;
-let msg;
+let data;
 let ws;
 let seq = 1001;
 
@@ -15,7 +15,7 @@ function genseq() {
 }
 
 window.addEventListener("load", function(evt) {
-  wsUri  = "ws://" + window.location.host + "/push";
+  wsUri  = "ws://" + window.location.host + "/stream";
   output = document.getElementById("output");
   myuid = document.getElementById("myuid");
   myuid.value = parseInt(1000 + Math.random() * 100);
@@ -24,7 +24,7 @@ window.addEventListener("load", function(evt) {
   uid = document.getElementById("uid");
   chan = document.getElementById("chan");
   cmd  = document.getElementById("cmd");
-  msg  = document.getElementById("msg");
+  data  = document.getElementById("data");
 
   let print = function (message) {
     let d = document.createElement("div");
@@ -94,19 +94,20 @@ window.addEventListener("load", function(evt) {
     let req = {
       cmd: cmd.value,
       seq: genseq(),
-      data: {
-        msg: msg.value
-      }
     };
     switch (req.cmd) {
+      case "enter":
+      case "exit":
+        req.data = {chans: data.value.split(',')};
+        break;
       case "snd2cli":
-        req.data.id = parseInt(clientid.value);
+        req.data = {id: parseInt(clientid.value), msg: data.value};
         break;
       case "snd2usr":
-        req.data.uid = parseInt(uid.value);
+        req.data = {uid: parseInt(uid.value), msg: data.value};
         break;
       case "snd2chan":
-        req.data.chan = chan.value;
+        req.data = {chan: chan.value, msg: data.value};
         break;
       default:
     }
