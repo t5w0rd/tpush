@@ -163,7 +163,7 @@ func (h *handler) SendMsgToClient(req websocket.Request, rsp websocket.Response)
 
 	uid, ok := h.room.User(req.Client())
 	if !ok {
-		return websocket.Error(rsp, -1, "client hasnot logged in", true)
+		return websocket.Error(rsp, ErrNotLogin, "client hasnot logged in", true)
 	}
 
 	id, ok := h.room.ClientId(req.Client())
@@ -173,7 +173,7 @@ func (h *handler) SendMsgToClient(req websocket.Request, rsp websocket.Response)
 
 	cli, ok := h.room.Client(request.Id)
 	if !ok {
-		return websocket.Error(rsp, -1, "dest client not found", false)
+		return websocket.Error(rsp, ErrClientNotFound, "dest client not found", false)
 	}
 
 	data := &RecvMsgRsp{
@@ -196,7 +196,7 @@ func (h *handler) SendMsgToUser(req websocket.Request, rsp websocket.Response) e
 
 	uid, ok := h.room.User(req.Client())
 	if !ok {
-		return websocket.Error(rsp, -1, "client hasnot logged in", true)
+		return websocket.Error(rsp, ErrNotLogin, "client hasnot logged in", true)
 	}
 
 	id, ok := h.room.ClientId(req.Client())
@@ -206,7 +206,7 @@ func (h *handler) SendMsgToUser(req websocket.Request, rsp websocket.Response) e
 
 	cligrp, ok := h.room.ClientsOfUser(request.Uid)
 	if !ok {
-		return websocket.Error(rsp, -1, "dest user not found", false)
+		return websocket.Error(rsp, ErrUserNotFound, "dest user not found", false)
 	}
 
 	data := &RecvMsgRsp{
@@ -229,7 +229,7 @@ func (h *handler) SendMsgToChan(req websocket.Request, rsp websocket.Response) e
 
 	uid, ok := h.room.User(req.Client())
 	if !ok {
-		return websocket.Error(rsp, -1, "client hasnot logged in", true)
+		return websocket.Error(rsp, ErrNotLogin, "client hasnot logged in", true)
 	}
 
 	id, ok := h.room.ClientId(req.Client())
@@ -239,7 +239,7 @@ func (h *handler) SendMsgToChan(req websocket.Request, rsp websocket.Response) e
 
 	cligrp, ok := h.room.ClientsInChannel(request.Chan)
 	if !ok {
-		return websocket.Error(rsp, -1, "dest chan not found", false)
+		return websocket.Error(rsp, ErrChanNotFound, "dest chan not found", false)
 	}
 
 	data := &RecvMsgRsp{
@@ -255,7 +255,7 @@ func (h *handler) SendMsgToChan(req websocket.Request, rsp websocket.Response) e
 }
 
 func (h *handler) RecvMsg(req websocket.Request, rsp websocket.Response) error {
-	return websocket.Error(rsp, -1, "wrong cmd", false)
+	return websocket.Error(rsp, ErrWrongCmd, "wrong cmd", false)
 }
 
 func newHandler() *handler {

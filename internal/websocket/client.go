@@ -1,16 +1,19 @@
 package websocket
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/gorilla/websocket"
 	log "github.com/micro/go-micro/v2/logger"
+	"io"
 	"sync"
 	"time"
 )
 
 type Writer interface {
-	Write(cmd string, seq int64, data interface{}, code int32, msg string, immediately bool)
+	Write(cmd string, seq int64, data interface{}, code int32, msg string, immed bool)
 }
 
 type Client interface {
@@ -40,7 +43,7 @@ func (cg *clientGroup) Clients(output *[]Client) {
 	}
 }
 
-func (cg *clientGroup) Write(cmd string, seq int64, data interface{}, code int32, msg string, immediately bool) {
+func (cg *clientGroup) Write(cmd string, seq int64, data interface{}, code int32, msg string, immed bool) {
 	rspData := &ResponseData{
 		Cmd: cmd,
 		Seq: seq,
@@ -48,9 +51,12 @@ func (cg *clientGroup) Write(cmd string, seq int64, data interface{}, code int32
 		Msg: msg,
 		Data: data,
 	}
+	var buf bytes.Buffer
+	json.NewEncoder(&buf).Encode(rspData)
+
 	for _, c := range cg.clients {
 		cli := c.(*client)
-		cli.write(rspData, false)
+		cli.write(buf.Bytes(), immed)
 	}
 }
 
@@ -66,6 +72,7 @@ type client struct {
 	conn       *websocket.Conn
 	ctx        context.Context
 	writeq     []*ResponseData
+	writer     bytes.Buffer
 	writeTimer *time.Timer
 	mtx        sync.Mutex
 	cycle      time.Duration
@@ -99,7 +106,7 @@ func (c *client) shutdown() {
 	c.svc.closeHandler(c)
 }
 
-func (c *client) Write(cmd string, seq int64, data interface{}, code int32, msg string, immediately bool) {
+func (c *client) Write(cmd string, seq int64, data interface{}, code int32, msg string, immed bool) {
 	rspData := &ResponseData{
 		Cmd: cmd,
 		Seq: seq,
@@ -107,34 +114,46 @@ func (c *client) Write(cmd string, seq int64, data interface{}, code int32, msg 
 		Msg: msg,
 		Data: data,
 	}
-	c.write(rspData, immediately)
+	var buf bytes.Buffer
+	json.NewEncoder(&buf).Encode(rspData)
+
+	c.write(buf.Bytes(), immed)
 }
 
-func (c *client) write(rsp *ResponseData, immediately bool) {
+func (c *client) write(json []byte, immed bool) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	if len(c.writeq) == 0 {
-		if immediately {
+	
+	if c.writer.Len() == 0 {
+		c.writer.WriteByte('[')
+		c.writer.Write(json)
+		if immed {
 			c.writeTimer.Reset(0)
 		} else {
 			c.writeTimer.Reset(c.cycle)
 		}
+	} else {
+		c.writer.WriteByte(',')
+		c.writer.Write(json)
 	}
-	c.writeq = append(c.writeq, rsp)
 }
 
-func (c *client) swap() (rsps []*ResponseData, closed bool) {
+func (c *client) swap(writer io.Writer) (closed bool) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
+	
 	if c.closed {
-		return nil, true
+		return true
 	}
-	if len(c.writeq) == 0 {
-		return nil, false
+	
+	if c.writer.Len() == 0 {
+		return false
+	} else {
+		c.writer.WriteByte(']')
 	}
-	rsps = c.writeq
-	c.writeq = make([]*ResponseData, 0, 100)
-	return rsps, false
+	
+	c.writer.WriteTo(writer)  // write all and reset
+	return false
 }
 
 func (c *client) run() error {
@@ -150,6 +169,8 @@ func (c *client) run() error {
 
 	go c.writePump()
 
+	var buf bytes.Buffer
+	en := json.NewEncoder(&buf)
 	for {
 		var reqDatas []*RequestData
 		if err := c.conn.ReadJSON(&reqDatas); err != nil {
@@ -168,7 +189,7 @@ func (c *client) run() error {
 				log.Error(err)
 				return err
 			}
-			log.Debugf("received request: %v", reqData)
+			log.Debugf("%09d received request: %v", time.Now().UnixNano() % int64(time.Second), reqData)
 
 			handler := c.svc.mux.Handler(reqData.Cmd)
 			req := &request{
@@ -186,7 +207,10 @@ func (c *client) run() error {
 				log.Error(err)
 				return err
 			}
-			c.write(rsp.data, req.data.Immed)
+
+			buf.Reset()
+			en.Encode(rsp.data)
+			c.write(buf.Bytes(), req.data.Immed)
 		}
 	}
 }
@@ -199,21 +223,23 @@ func (c *client) writePump() {
 		log.Debug("writePump complete")
 	}()
 
+	var buf bytes.Buffer
 	for {
 		select {
 		case <-c.writeTimer.C:
-			rspDatas, closed := c.swap()
+			buf.Reset()
+			closed := c.swap(&buf)
 			if closed {
 				return
 			}
 
-			if rspDatas == nil {
-				log.Debug("empty sendq")
+			if buf.Len() == 0 {
+				log.Debug("empty writeq")
 				continue
 			}
 
-			log.Debugf("sent Response: %v", rspDatas)
-			if err := c.conn.WriteJSON(rspDatas); err != nil {
+			log.Debugf("%09d sent Response: %s", time.Now().UnixNano() % int64(time.Second), buf.Bytes())
+			if err := c.conn.WriteMessage(websocket.TextMessage, buf.Bytes()); err != nil {
 				return
 			}
 		}

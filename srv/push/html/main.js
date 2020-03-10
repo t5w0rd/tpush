@@ -9,6 +9,7 @@ let cmd;
 let data;
 let ws;
 let seq = 1001;
+let profile;
 
 function genseq() {
   return seq++;
@@ -50,6 +51,7 @@ window.addEventListener("load", function(evt) {
       let s = JSON.stringify([req]);
       console.log("send:", s);
       ws.send(s);
+      profile = +new Date();
     };
 
     ws.onopen = function (evt) {
@@ -62,7 +64,7 @@ window.addEventListener("load", function(evt) {
     };
     ws.onmessage = function (evt) {
       //print('<span style="color: blue;">OnMessage</span>');
-      console.log("recv:", evt.data);
+      console.log("recv("+(+new Date()-profile)+"ms):", evt.data);
       let data = JSON.parse(evt.data);
       for (let i in data) {
         let rsp = data[i];
@@ -115,6 +117,7 @@ window.addEventListener("load", function(evt) {
     //print('<span style="color: blue;">Sent request: </span>' + s);
     console.log("send:", s);
     ws.send(s);
+    profile = +new Date();
 
     return false;
   };

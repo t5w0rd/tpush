@@ -14,6 +14,14 @@ const (
 	CmdSendMsgToUser = "snd2usr"
 	CmdSendMsgToChan = "snd2chan"
 	CmdRecvMsg = "rcvmsg"
+
+	ErrNotLogin = -11
+	ErrLoginFailed = -12
+	ErrUnsupportedCmd = -21
+	ErrWrongCmd = -22
+	ErrClientNotFound = -41
+	ErrUserNotFound = -42
+	ErrChanNotFound = -43
 )
 
 var (

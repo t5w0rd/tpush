@@ -11,7 +11,11 @@ var (
 )
 
 func genid() int64 {
-	return atomic.AddInt64(&cliId, 1)
+	id := atomic.AddInt64(&cliId, 1)
+	if id == 0 {
+		return atomic.AddInt64(&cliId, 1)
+	}
+	return id
 }
 
 type room struct {
