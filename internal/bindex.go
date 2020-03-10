@@ -10,7 +10,7 @@ type BIndex struct {
 	tagToUserSet map[interface{}]set // map[key2] map[key]struct{}
 }
 
-func (bi *BIndex) AddUserTag(user, tag interface{}) {
+func (bi *BIndex) AddUserTag(user interface{}, tags ...interface{}) {
 	bi.mu.Lock()
 	defer bi.mu.Unlock()
 
@@ -23,19 +23,22 @@ func (bi *BIndex) AddUserTag(user, tag interface{}) {
 		tagSet = make(set)
 		bi.userToTagSet[user] = tagSet
 	}
-	tagSet[tag] = struct{}{}
 
-	// 反向索引
-	userSet, ok := bi.tagToUserSet[tag]
-	if !ok {
-		// tag不存在，创建新userSet并加入
-		userSet = make(set)
-		bi.tagToUserSet[tag] = userSet
+	for _, tag := range tags {
+		tagSet[tag] = struct{}{}
+
+		// 反向索引
+		userSet, ok := bi.tagToUserSet[tag]
+		if !ok {
+			// tag不存在，创建新userSet并加入
+			userSet = make(set)
+			bi.tagToUserSet[tag] = userSet
+		}
+		userSet[user] = struct{}{}
 	}
-	userSet[user] = struct{}{}
 }
 
-func (bi *BIndex) RemoveUserTag(user, tag interface{}) {
+func (bi *BIndex) RemoveUserTag(user interface{}, tags ...interface{}) {
 	bi.mu.Lock()
 	defer bi.mu.Unlock()
 
@@ -45,20 +48,23 @@ func (bi *BIndex) RemoveUserTag(user, tag interface{}) {
 		// user不存在
 		return
 	}
-	delete(tagSet, tag)
-	if len(tagSet) == 0 {
-		delete(bi.userToTagSet, user)
-	}
 
-	// 反向索引
-	userSet, ok := bi.tagToUserSet[tag]
-	if !ok {
-		// tag不存在，创建新userSet并加入
-		return
-	}
-	delete(userSet, user)
-	if len(userSet) == 0 {
-		delete(bi.tagToUserSet, tag)
+	for _, tag := range tags {
+		delete(tagSet, tag)
+		if len(tagSet) == 0 {
+			delete(bi.userToTagSet, user)
+		}
+
+		// 反向索引
+		userSet, ok := bi.tagToUserSet[tag]
+		if !ok {
+			// tag不存在，创建新userSet并加入
+			return
+		}
+		delete(userSet, user)
+		if len(userSet) == 0 {
+			delete(bi.tagToUserSet, tag)
+		}
 	}
 }
 
@@ -210,4 +216,103 @@ func NewBIndex() *BIndex {
 		tagToUserSet: make(map[interface{}]set),
 	}
 	return bi
+}
+
+type Index struct {
+	mu sync.RWMutex
+	userToTagSet map[interface{}]set // map[key] map[key2]struct{}
+}
+
+func (i *Index) AddUserTag(user interface{}, tags ...interface{}) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	// 给用户user添加标签tag
+
+	// 正向索引
+	tagSet, ok := i.userToTagSet[user]
+	if !ok {
+		// user不存在，创建新tagSet并加入
+		tagSet = make(set)
+		i.userToTagSet[user] = tagSet
+	}
+
+	for _, tag := range tags {
+		tagSet[tag] = struct{}{}
+	}
+}
+
+func (i *Index) RemoveUserTag(user interface{}, tags ...interface{}) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	// 正向索引
+	tagSet, ok := i.userToTagSet[user]
+	if !ok {
+		// user不存在
+		return
+	}
+
+	for _, tag := range tags {
+		delete(tagSet, tag)
+		if len(tagSet) == 0 {
+			delete(i.userToTagSet, user)
+		}
+	}
+}
+
+func (i *Index) Tags(user interface{}, output interface{}) bool {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+
+	// 正向索引
+	tagSet, ok := i.userToTagSet[user]
+	if !ok {
+		// user不存在
+		return false
+	}
+
+	switch output.(type) {
+	case *[]interface{}:
+		tags := output.(*[]interface{})
+		if size := len(tagSet); cap(*tags) < size {
+			*tags = make([]interface{}, 0, size)
+		} else {
+			*tags = (*tags)[:0]
+		}
+		for tag, _ := range tagSet {
+			*tags = append(*tags, tag)
+		}
+		return true
+	default:
+		return false
+	}
+}
+
+func (i *Index) AllUsers(output interface{}) bool {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+
+	switch output.(type) {
+	case *[]interface{}:
+		users := output.(*[]interface{})
+		if size := len(i.userToTagSet); cap(*users) < size {
+			*users = make([]interface{}, 0, size)
+		} else {
+			*users = (*users)[:0]
+		}
+		for user, _ := range i.userToTagSet {
+			*users = append(*users, user)
+		}
+		return true
+	default:
+		return false
+	}
+}
+
+func NewIndex() *Index {
+	i := &Index{
+		userToTagSet: make(map[interface{}]set),
+	}
+	return i
 }

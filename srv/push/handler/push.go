@@ -9,17 +9,25 @@ import (
 )
 
 type Push struct {
+	hub* Hub
+}
+
+func NewPush() *Push {
+	h := &Push{
+		hub: NewHub(),
+	}
+	return h
 }
 
 // Call is a single request handler called via client.Call or the generated client code
-func (e *Push) Call(ctx context.Context, req *push.Request, rsp *push.Response) error {
+func (h *Push) Call(ctx context.Context, req *push.Request, rsp *push.Response) error {
 	log.Info("received Push.Call request")
 	rsp.Msg = "Hello " + req.Name
 	return nil
 }
 
 // Stream is a server side stream handler called via client.Stream or the generated client code
-func (e *Push) Stream(ctx context.Context, req *push.StreamingRequest, stream push.Push_StreamStream) error {
+func (h *Push) Stream(ctx context.Context, req *push.StreamingRequest, stream push.Push_StreamStream) error {
 	log.Infof("received Push.Stream request with count: %d", req.Count)
 
 	for i := 0; i < int(req.Count); i++ {
@@ -34,7 +42,7 @@ func (e *Push) Stream(ctx context.Context, req *push.StreamingRequest, stream pu
 }
 
 // PingPong is a bidirectional stream handler called via client.Stream or the generated client code
-func (e *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) error {
+func (h *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) error {
 	for {
 		req, err := stream.Recv()
 		if err != nil {
@@ -55,6 +63,34 @@ type LoginRsp struct {
 	Id int64 `json:"id"`
 }
 
+type EnterChanReq struct {
+	Chans []string `json:"chans"`
+}
+
+type EnterChanRsp struct {
+}
+
+type ExitChanReq struct {
+	Chans []string `json:"chans"`
+}
+
+type ExitChanRsp struct {
+}
+
+type SendMsgReq struct {
+	Msg string `json:"msg"`
+}
+
+type SendMsgRsp struct {
+}
+
+type RecvMsgReq struct {
+}
+
+type RecvMsgRsp struct {
+	Msg string `json:"msg"`
+}
+
 type HelloReq struct {
 	Name string `json:"name"`
 }
@@ -71,18 +107,18 @@ type clientData struct {
 	id int64
 }
 
-func (e *Push) OnOpen(cli websocket.Client) error {
+func (h *Push) OnOpen(cli websocket.Client) error {
 	loginDone := make(chan int64)
 	cli.AddContextValue(loginDoneKey{}, loginDone)
 	cli.AddContextValue(clientDataKey{}, &clientData{
-		id: genid(),
+		id: h.hub.AddClient(cli),
 	})
 
 	go func() {
 		defer log.Debug("waitLogin complete")
 		select {
-		case id := <-loginDone:
-			log.Debugf("client logged in succ, id: %v", id)
+		case uid := <-loginDone:
+			log.Debugf("client logged in succ, uid: %v", uid)
 			return
 		case <-time.After(time.Second * 2):
 			log.Error("client hasnot logged in for a long time")
@@ -93,18 +129,18 @@ func (e *Push) OnOpen(cli websocket.Client) error {
 	return nil
 }
 
-func (e *Push) OnClose(cli websocket.Client) {
+func (h *Push) OnClose(cli websocket.Client) {
 }
 
-func (e *Push) Login(req websocket.Request, rsp websocket.Response) error {
+func (h *Push) Login(req websocket.Request, rsp websocket.Response) error {
 	var loginReq LoginReq
 	if err := req.DecodeData(&loginReq); err != nil {
 		return err
 	}
-	id := loginReq.Uid
+	uid := loginReq.Uid
 
 	loginDone := req.Client().ContextValue(loginDoneKey{}).(chan int64)
-	loginDone <- id
+	loginDone <- uid
 
 	clientData := req.Client().ContextValue(clientDataKey{}).(*clientData)
 
@@ -115,7 +151,33 @@ func (e *Push) Login(req websocket.Request, rsp websocket.Response) error {
 	return nil
 }
 
-func (e *Push) Hello(req websocket.Request, rsp websocket.Response) error {
+func (h *Push) EnterChan(req websocket.Request, rsp websocket.Response) error {
+	var enterChanReq EnterChanReq
+	if err := req.DecodeData(&enterChanReq); err != nil {
+		return err
+	}
+
+	h.hub.ClientEnterChannel(req.Client(), enterChanReq.Chans...)
+
+	rsp.EncodeData(&EnterChanRsp{}, 0, "")
+
+	return nil
+}
+
+func (h *Push) ExitChan(req websocket.Request, rsp websocket.Response) error {
+	var exitChanReq ExitChanReq
+	if err := req.DecodeData(&exitChanReq); err != nil {
+		return err
+	}
+
+	h.hub.ClientExitChannel(req.Client(), exitChanReq.Chans...)
+
+	rsp.EncodeData(&ExitChanRsp{}, 0, "")
+
+	return nil
+}
+
+func (h *Push) Hello(req websocket.Request, rsp websocket.Response) error {
 	var helloReq HelloReq
 	if err := req.DecodeData(&helloReq); err != nil {
 		return err

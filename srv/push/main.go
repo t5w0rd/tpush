@@ -60,7 +60,7 @@ func main() {
 		}),
 	)
 
-	h := &handler.Push{}
+	h := handler.NewPush()
 
 	// Register Handler
 	push.RegisterPushHandler(service.Server(), h)
@@ -81,6 +81,8 @@ func main() {
 	// websocket service
 	mux := websocket.NewServeMux()
 	mux.HandleFunc("login", h.Login)
+	mux.HandleFunc("enter", h.EnterChan)
+	mux.HandleFunc("exit", h.ExitChan)
 	mux.HandleFunc("hello", h.Hello)
 	ws := websocket.Server(
 		ClientCycle,
