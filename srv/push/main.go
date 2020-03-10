@@ -80,9 +80,13 @@ func main() {
 
 	// websocket service
 	mux := websocket.NewServeMux()
-	mux.HandleFunc("login", h.Login)
-	mux.HandleFunc("enter", h.EnterChan)
-	mux.HandleFunc("exit", h.ExitChan)
+	mux.HandleFunc(handler.CmdLogin, h.Login)
+	mux.HandleFunc(handler.CmdEnter, h.EnterChan)
+	mux.HandleFunc(handler.CmdExit, h.ExitChan)
+	mux.HandleFunc(handler.CmdSendMsgToClient, h.SendMsgToClient)
+	mux.HandleFunc(handler.CmdSendMsgToUser, h.SendMsgToUser)
+	mux.HandleFunc(handler.CmdSendMsgToChan, h.SendMsgToChan)
+	mux.HandleFunc(handler.CmdRecvMsg, h.RecvMsg)
 	mux.HandleFunc("hello", h.Hello)
 	ws := websocket.Server(
 		ClientCycle,

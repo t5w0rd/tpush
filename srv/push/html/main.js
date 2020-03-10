@@ -1,6 +1,12 @@
 let wsUri;
 let output;
-let count;
+let myuid;
+let myid;
+let clientid;
+let uid;
+let chan;
+let cmd;
+let msg;
 let ws;
 let seq = 1001;
 
@@ -11,7 +17,14 @@ function genseq() {
 window.addEventListener("load", function(evt) {
   wsUri  = "ws://" + window.location.host + "/push";
   output = document.getElementById("output");
-  count  = document.getElementById("count");
+  myuid = document.getElementById("myuid");
+  myuid.value = parseInt(1000 + Math.random() * 100);
+  myid = document.getElementById("myid");
+  clientid = document.getElementById("clientid");
+  uid = document.getElementById("uid");
+  chan = document.getElementById("chan");
+  cmd  = document.getElementById("cmd");
+  msg  = document.getElementById("msg");
 
   let print = function (message) {
     let d = document.createElement("div");
@@ -31,7 +44,7 @@ window.addEventListener("load", function(evt) {
         seq: genseq(),
         immed: true,
         data: {
-          uid: 1001
+          uid: parseInt(myuid.value),
         }
       };
       let s = JSON.stringify([req]);
@@ -48,8 +61,23 @@ window.addEventListener("load", function(evt) {
       ws = null;
     };
     ws.onmessage = function (evt) {
-      print('<span style="color: blue;">OnMmesage</span>');
+      //print('<span style="color: blue;">OnMessage</span>');
       console.log("recv:", evt.data);
+      let data = JSON.parse(evt.data);
+      for (let i in data) {
+        let rsp = data[i];
+        switch (rsp.cmd) {
+          case "login":
+            myid.value = rsp.data.id;
+            print('<span style="color: blue;">Logged in</span>');
+            break;
+          case "rcvmsg":
+            print('<span style="color: blue;">['+rsp.data.id+':'+rsp.data.uid+':'+rsp.data.chan+'] '+rsp.data.msg+'</span>');
+            break;
+          default:
+            //print('<span style="color: blue;"></span>');;
+        }
+      }
     };
     ws.onerror = function (evt) {
       print('<span style="color: red;">OnError</span>');
@@ -64,14 +92,26 @@ window.addEventListener("load", function(evt) {
     }
 
     let req = {
-      cmd: "hello",
+      cmd: cmd.value,
       seq: genseq(),
       data: {
-        name: "t5w0rd"
+        msg: msg.value
       }
     };
+    switch (req.cmd) {
+      case "snd2cli":
+        req.data.id = parseInt(clientid.value);
+        break;
+      case "snd2usr":
+        req.data.uid = parseInt(uid.value);
+        break;
+      case "snd2chan":
+        req.data.chan = chan.value;
+        break;
+      default:
+    }
     let s = JSON.stringify([req]);
-    print('<span style="color: blue;">Sent request: </span>' + s);
+    //print('<span style="color: blue;">Sent request: </span>' + s);
     console.log("send:", s);
     ws.send(s);
 

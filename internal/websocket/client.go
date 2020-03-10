@@ -13,6 +13,48 @@ type Client interface {
 	ContextValue(key interface{}) interface{}
 	AddContextValue(key, value interface{})
 	Close()
+	Write(cmd string, seq int64, data interface{}, code int32, msg string, immediately bool)
+}
+
+type ClientGroup interface {
+	Clients(output *[]Client)
+	Write(cmd string, seq int64, data interface{}, code int32, msg string, immediately bool)
+}
+
+type clientGroup struct {
+	clients []interface{}
+}
+
+func (cg *clientGroup) Clients(output *[]Client) {
+	if size := len(cg.clients); cap(*output) < size {
+		*output = make([]Client, size)
+	} else {
+		*output = (*output)[:size]
+	}
+	for i, o := range cg.clients {
+		(*output)[i] = o.(Client)
+	}
+}
+
+func (cg *clientGroup) Write(cmd string, seq int64, data interface{}, code int32, msg string, immediately bool) {
+	rspData := &ResponseData{
+		Cmd: cmd,
+		Seq: seq,
+		Code: code,
+		Msg: msg,
+		Data: data,
+	}
+	for _, c := range cg.clients {
+		cli := c.(*client)
+		cli.write(rspData, immediately)
+	}
+}
+
+func NewClientGroup(clients []interface{}) ClientGroup {
+	cg := &clientGroup{
+		clients,
+	}
+	return cg
 }
 
 type client struct {
@@ -49,6 +91,17 @@ func (c *client) shutdown() {
 	c.writeTimer.Reset(0)
 	c.svc.closeHandler(c)
 	c.closed = true
+}
+
+func (c *client) Write(cmd string, seq int64, data interface{}, code int32, msg string, immediately bool) {
+	rspData := &ResponseData{
+		Cmd: cmd,
+		Seq: seq,
+		Code: code,
+		Msg: msg,
+		Data: data,
+	}
+	c.write(rspData, immediately)
 }
 
 func (c *client) write(rsp *ResponseData, immediately bool) {

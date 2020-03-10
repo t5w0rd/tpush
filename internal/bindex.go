@@ -1,6 +1,8 @@
 package internal
 
-import "sync"
+import (
+	"sync"
+)
 
 type set = map[interface{}]struct{}
 
@@ -221,6 +223,7 @@ func NewBIndex() *BIndex {
 type Index struct {
 	mu sync.RWMutex
 	userToTagSet map[interface{}]set // map[key] map[key2]struct{}
+	tagToUser map[interface{}]interface{}
 }
 
 func (i *Index) AddUserTag(user interface{}, tags ...interface{}) {
@@ -239,6 +242,9 @@ func (i *Index) AddUserTag(user interface{}, tags ...interface{}) {
 
 	for _, tag := range tags {
 		tagSet[tag] = struct{}{}
+		if i.tagToUser != nil {
+			i.tagToUser[tag] = user
+		}
 	}
 }
 
@@ -257,6 +263,9 @@ func (i *Index) RemoveUserTag(user interface{}, tags ...interface{}) {
 		delete(tagSet, tag)
 		if len(tagSet) == 0 {
 			delete(i.userToTagSet, user)
+		}
+		if i.tagToUser != nil {
+			delete(i.tagToUser, tag)
 		}
 	}
 }
@@ -310,9 +319,57 @@ func (i *Index) AllUsers(output interface{}) bool {
 	}
 }
 
-func NewIndex() *Index {
+func (i *Index) RemoveUser(user interface{}) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	if i.tagToUser != nil {
+		// 正向索引
+		tagSet, ok := i.userToTagSet[user]
+		if !ok {
+			// user不存在
+			return
+		}
+
+		for tag, _ := range tagSet {
+			delete(i.tagToUser, tag)
+		}
+	}
+	delete(i.userToTagSet, user)
+}
+
+func (i *Index) RemoveTag(tag interface{}) {
+	if i.tagToUser == nil {
+		return
+	}
+
+	if user, ok := i.tagToUser[tag]; ok {
+		tagSet := i.userToTagSet[user]
+		delete(tagSet, tag)
+		if len(tagSet) == 0 {
+			delete(i.userToTagSet, user)
+		}
+	}
+}
+
+func (i *Index) User(tag interface{}) (interface{}, bool) {
+	if i.tagToUser == nil {
+		return nil, false
+	}
+
+	if user, ok := i.tagToUser[tag]; ok {
+		return user, true
+	} else {
+		return nil, false
+	}
+}
+
+func NewIndex(reverse bool) *Index {
 	i := &Index{
 		userToTagSet: make(map[interface{}]set),
+	}
+	if reverse {
+		i.tagToUser = make(map[interface{}]interface{})
 	}
 	return i
 }

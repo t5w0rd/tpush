@@ -55,6 +55,16 @@ func (h *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) er
 	}
 }
 
+const (
+	CmdLogin = "login"
+	CmdEnter = "enter"
+	CmdExit = "exit"
+	CmdSendMsgToClient = "snd2cli"
+	CmdSendMsgToUser = "snd2usr"
+	CmdSendMsgToChan = "snd2chan"
+	CmdRecvMsg = "rcvmsg"
+)
+
 type LoginReq struct {
 	Uid int64 `json:"uid"`
 }
@@ -77,17 +87,37 @@ type ExitChanReq struct {
 type ExitChanRsp struct {
 }
 
-type SendMsgReq struct {
+type SendMsgToClientReq struct {
+	Id int64 `json:"uid"`
 	Msg string `json:"msg"`
 }
 
-type SendMsgRsp struct {
+type SendMsgToClientRsp struct {
+}
+
+type SendMsgToUserReq struct {
+	Uid int `json:"uid"`
+	Msg string `json:"msg"`
+}
+
+type SendMsgToUserRsp struct {
+}
+
+type SendMsgToChanReq struct {
+	Chan string `json:"chan"`
+	Msg string `json:"msg"`
+}
+
+type SendMsgToChanRsp struct {
 }
 
 type RecvMsgReq struct {
 }
 
 type RecvMsgRsp struct {
+	Id  int64 `json:"id"`
+	Uid int64 `json:"uid"`
+	Chan string `json:"chan"`
 	Msg string `json:"msg"`
 }
 
@@ -118,6 +148,7 @@ func (h *Push) OnOpen(cli websocket.Client) error {
 		defer log.Debug("waitLogin complete")
 		select {
 		case uid := <-loginDone:
+			h.hub.Register(cli, uid)
 			log.Debugf("client logged in succ, uid: %v", uid)
 			return
 		case <-time.After(time.Second * 2):
@@ -130,6 +161,7 @@ func (h *Push) OnOpen(cli websocket.Client) error {
 }
 
 func (h *Push) OnClose(cli websocket.Client) {
+	h.hub.RemoveClient(cli)
 }
 
 func (h *Push) Login(req websocket.Request, rsp websocket.Response) error {
@@ -175,6 +207,58 @@ func (h *Push) ExitChan(req websocket.Request, rsp websocket.Response) error {
 	rsp.EncodeData(&ExitChanRsp{}, 0, "")
 
 	return nil
+}
+
+func (h *Push) SendMsgToClient(req websocket.Request, rsp websocket.Response) error {
+	var request SendMsgToClientReq
+	if err := req.DecodeData(&request); err != nil {
+		return err
+	}
+
+	cli, ok := h.hub.Client(request.Id)
+	if !ok {
+		return websocket.Error(rsp, -1, "dest client not found", false)
+	}
+	id, ok := h.hub.ClientId(req.Client())
+	if !ok {
+		return websocket.Error(rsp, -1, "client has no id", true)
+	}
+	uid, ok := h.hub.User(req.Client())
+
+	data := &RecvMsgRsp{
+		Id: id,
+		Uid: uid,
+		Chan: "",
+		Msg: request.Msg,
+	}
+	cli.(websocket.Client).Write(CmdRecvMsg, 0, data, 0, "", false)
+
+	rsp.EncodeData(&SendMsgToClientRsp{}, 0, "")
+	return nil
+}
+
+func (h *Push) SendMsgToUser(req websocket.Request, rsp websocket.Response) error {
+	var request SendMsgToUserReq
+	if err := req.DecodeData(&request); err != nil {
+		return err
+	}
+
+	rsp.EncodeData(&SendMsgToUserRsp{}, 0, "")
+	return nil
+}
+
+func (h *Push) SendMsgToChan(req websocket.Request, rsp websocket.Response) error {
+	var request SendMsgToChanReq
+	if err := req.DecodeData(&request); err != nil {
+		return err
+	}
+
+	rsp.EncodeData(&SendMsgToChanRsp{}, 0, "")
+	return nil
+}
+
+func (h *Push) RecvMsg(req websocket.Request, rsp websocket.Response) error {
+	return websocket.Error(rsp, -1, "wrong cmd", false)
 }
 
 func (h *Push) Hello(req websocket.Request, rsp websocket.Response) error {
