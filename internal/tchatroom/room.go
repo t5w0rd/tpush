@@ -20,8 +20,8 @@ func genid() int64 {
 
 type Room struct {
 	clients *internal.BiMap  // id <-> Client
-	where *internal.BIndex  // client <-> chan set
-	who *internal.Index  // uid <-> client set
+	where   *internal.BIndex // client <-> chan set
+	who     *internal.Index  // uid <-> client set
 }
 
 func (r *Room) AddClient(cli websocket.Client) int64 {
@@ -99,8 +99,8 @@ func (r *Room) User(cli websocket.Client) (int64, bool) {
 func NewRoom() *Room {
 	r := &Room{
 		clients: internal.NewBiMap(),
-		where: internal.NewBIndex(),
-		who: internal.NewIndex(true),
+		where:   internal.NewBIndex(),
+		who:     internal.NewIndex(true),
 	}
 	return r
 }

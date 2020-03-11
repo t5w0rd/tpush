@@ -9,7 +9,7 @@ import (
 )
 
 type Push struct {
-	Room* tchatroom.Room
+	Room *tchatroom.Room
 }
 
 // Call is a single request handler called via client.Call or the generated client code
@@ -55,10 +55,10 @@ func (h *Push) SendMsgToClient(ctx context.Context, req *push.SendMsgToClientReq
 	}
 
 	data := &tchatroom.RecvMsgRsp{
-		Id: 0,
-		Uid: req.Uid,
+		Id:   0,
+		Uid:  req.Uid,
 		Chan: "",
-		Msg: req.Msg,
+		Msg:  req.Msg,
 	}
 	go cli.Write(tchatroom.CmdRecvMsg, 0, data, 0, "", false)
 

@@ -60,7 +60,6 @@ func TestStringsBuilder(t *testing.T) {
 	json.NewEncoder(&b).Encode(j)
 	b.WriteByte(']')
 
-
 	var b2 bytes.Buffer
 	b2.ReadFrom(&b)
 	t.Log(b2.String())

@@ -11,7 +11,7 @@ import (
 	push "tpush/srv/push/proto/push"
 )
 
-func handle(handler func (request *websocket.RequestData, response *websocket.ResponseData) error, w http.ResponseWriter, r *http.Request) {
+func handle(handler func(request *websocket.RequestData, response *websocket.ResponseData) error, w http.ResponseWriter, r *http.Request) {
 	var request websocket.RequestData
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, err.Error(), 500)
@@ -41,7 +41,7 @@ func SendMsgToClient(w http.ResponseWriter, r *http.Request) {
 		// call the backend service
 		pushCli := push.NewPushService("tpush.srv.push", client.DefaultClient)
 		if _, err := pushCli.SendMsgToClient(context.TODO(), &push.SendMsgToClientReq{
-			Id: req.Id,
+			Id:  req.Id,
 			Msg: req.Msg,
 		}); err != nil {
 			return err

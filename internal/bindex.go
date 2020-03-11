@@ -7,7 +7,7 @@ import (
 type set = map[interface{}]struct{}
 
 type BIndex struct {
-	mu sync.RWMutex
+	mu           sync.RWMutex
 	userToTagSet map[interface{}]set // map[key] map[key2]struct{}
 	tagToUserSet map[interface{}]set // map[key2] map[key]struct{}
 }
@@ -221,9 +221,9 @@ func NewBIndex() *BIndex {
 }
 
 type Index struct {
-	mu sync.RWMutex
+	mu           sync.RWMutex
 	userToTagSet map[interface{}]set // map[key] map[key2]struct{}
-	tagToUser map[interface{}]interface{}
+	tagToUser    map[interface{}]interface{}
 }
 
 func (i *Index) AddUserTag(user interface{}, tags ...interface{}) {

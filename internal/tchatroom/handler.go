@@ -34,7 +34,7 @@ type ExitChanRsp struct {
 }
 
 type SendMsgToClientReq struct {
-	Id int64 `json:"uid"`
+	Id  int64  `json:"uid"`
 	Msg string `json:"msg"`
 }
 
@@ -42,7 +42,7 @@ type SendMsgToClientRsp struct {
 }
 
 type SendMsgToUserReq struct {
-	Uid int64 `json:"uid"`
+	Uid int64  `json:"uid"`
 	Msg string `json:"msg"`
 }
 
@@ -51,7 +51,7 @@ type SendMsgToUserRsp struct {
 
 type SendMsgToChanReq struct {
 	Chan string `json:"chan"`
-	Msg string `json:"msg"`
+	Msg  string `json:"msg"`
 }
 
 type SendMsgToChanRsp struct {
@@ -61,10 +61,10 @@ type RecvMsgReq struct {
 }
 
 type RecvMsgRsp struct {
-	Id  int64 `json:"id"`
-	Uid int64 `json:"uid"`
+	Id   int64  `json:"id"`
+	Uid  int64  `json:"uid"`
 	Chan string `json:"chan"`
-	Msg string `json:"msg"`
+	Msg  string `json:"msg"`
 }
 
 type HelloReq struct {
@@ -177,10 +177,10 @@ func (h *handler) SendMsgToClient(req websocket.Request, rsp websocket.Response)
 	}
 
 	data := &RecvMsgRsp{
-		Id: id,
-		Uid: uid,
+		Id:   id,
+		Uid:  uid,
 		Chan: "",
-		Msg: request.Msg,
+		Msg:  request.Msg,
 	}
 	go cli.Write(CmdRecvMsg, 0, data, 0, "", false)
 
@@ -210,10 +210,10 @@ func (h *handler) SendMsgToUser(req websocket.Request, rsp websocket.Response) e
 	}
 
 	data := &RecvMsgRsp{
-		Id: id,
-		Uid: uid,
+		Id:   id,
+		Uid:  uid,
 		Chan: "",
-		Msg: request.Msg,
+		Msg:  request.Msg,
 	}
 	go cligrp.Write(CmdRecvMsg, 0, data, 0, "", false)
 
@@ -243,10 +243,10 @@ func (h *handler) SendMsgToChan(req websocket.Request, rsp websocket.Response) e
 	}
 
 	data := &RecvMsgRsp{
-		Id: id,
-		Uid: uid,
+		Id:   id,
+		Uid:  uid,
 		Chan: request.Chan,
-		Msg: request.Msg,
+		Msg:  request.Msg,
 	}
 	go cligrp.Write(CmdRecvMsg, 0, data, 0, "", false)
 

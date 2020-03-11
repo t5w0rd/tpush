@@ -7,21 +7,21 @@ import (
 )
 
 const (
-	CmdLogin = "login"
-	CmdEnter = "enter"
-	CmdExit = "exit"
+	CmdLogin           = "login"
+	CmdEnter           = "enter"
+	CmdExit            = "exit"
 	CmdSendMsgToClient = "snd2cli"
-	CmdSendMsgToUser = "snd2usr"
-	CmdSendMsgToChan = "snd2chan"
-	CmdRecvMsg = "rcvmsg"
+	CmdSendMsgToUser   = "snd2usr"
+	CmdSendMsgToChan   = "snd2chan"
+	CmdRecvMsg         = "rcvmsg"
 
-	ErrNotLogin = -11
-	ErrLoginFailed = -12
+	ErrNotLogin       = -11
+	ErrLoginFailed    = -12
 	ErrUnsupportedCmd = -21
-	ErrWrongCmd = -22
+	ErrWrongCmd       = -22
 	ErrClientNotFound = -41
-	ErrUserNotFound = -42
-	ErrChanNotFound = -43
+	ErrUserNotFound   = -42
+	ErrChanNotFound   = -43
 )
 
 var (
@@ -31,7 +31,7 @@ var (
 )
 
 type Service struct {
-	mux *websocket.ServeMux
+	mux  *websocket.ServeMux
 	Room *Room
 }
 
@@ -65,7 +65,7 @@ func NewService() *Service {
 	http.Handle("/", http.FileServer(http.Dir("html")))
 
 	s := &Service{
-		mux: mux,
+		mux:  mux,
 		Room: r,
 	}
 	return s

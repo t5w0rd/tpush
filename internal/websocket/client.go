@@ -45,10 +45,10 @@ func (cg *clientGroup) Clients(output *[]Client) {
 
 func (cg *clientGroup) Write(cmd string, seq int64, data interface{}, code int32, msg string, immed bool) {
 	rspData := &ResponseData{
-		Cmd: cmd,
-		Seq: seq,
+		Cmd:  cmd,
+		Seq:  seq,
 		Code: code,
-		Msg: msg,
+		Msg:  msg,
 		Data: data,
 	}
 	var buf bytes.Buffer
@@ -108,10 +108,10 @@ func (c *client) shutdown() {
 
 func (c *client) Write(cmd string, seq int64, data interface{}, code int32, msg string, immed bool) {
 	rspData := &ResponseData{
-		Cmd: cmd,
-		Seq: seq,
+		Cmd:  cmd,
+		Seq:  seq,
 		Code: code,
-		Msg: msg,
+		Msg:  msg,
 		Data: data,
 	}
 	var buf bytes.Buffer
@@ -123,7 +123,7 @@ func (c *client) Write(cmd string, seq int64, data interface{}, code int32, msg 
 func (c *client) write(json []byte, immed bool) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	
+
 	if c.writer.Len() == 0 {
 		c.writer.WriteByte('[')
 		c.writer.Write(json)
@@ -141,18 +141,18 @@ func (c *client) write(json []byte, immed bool) {
 func (c *client) swap(writer io.Writer) (closed bool) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	
+
 	if c.closed {
 		return true
 	}
-	
+
 	if c.writer.Len() == 0 {
 		return false
 	} else {
 		c.writer.WriteByte(']')
 	}
-	
-	c.writer.WriteTo(writer)  // write all and reset
+
+	c.writer.WriteTo(writer) // write all and reset
 	return false
 }
 
@@ -189,7 +189,7 @@ func (c *client) run() error {
 				log.Error(err)
 				return err
 			}
-			log.Debugf("%09d received request: %v", time.Now().UnixNano() % int64(time.Second), reqData)
+			log.Debugf("%09d received request: %v", time.Now().UnixNano()%int64(time.Second), reqData)
 
 			handler := c.svc.mux.Handler(reqData.Cmd)
 			req := &request{
@@ -238,7 +238,7 @@ func (c *client) writePump() {
 				continue
 			}
 
-			log.Debugf("%09d sent Response: %s", time.Now().UnixNano() % int64(time.Second), buf.Bytes())
+			log.Debugf("%09d sent Response: %s", time.Now().UnixNano()%int64(time.Second), buf.Bytes())
 			if err := c.conn.WriteMessage(websocket.TextMessage, buf.Bytes()); err != nil {
 				return
 			}
