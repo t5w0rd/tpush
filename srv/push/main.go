@@ -64,7 +64,23 @@ func main() {
 		}),
 	)
 
-	h := &handler.Push{}
+	// websocket service
+	service2 := tchatroom.NewService()
+
+	service2Done := make(chan struct{})
+
+	go func() {
+		// 启动web服务
+		log.Infof("server [web] Listening on %s", tchatroom.Address)
+		if err := service2.Run(); err != nil {
+			log.Fatal("server [web] Listening err: ", err)
+		}
+		close(service2Done)
+	}()
+
+	h := &handler.Push{
+		Room: service2.Room,
+	}
 
 	// Register Handler
 	push.RegisterPushHandler(service.Server(), h)
@@ -80,20 +96,6 @@ func main() {
 			log.Fatal(err)
 		}
 		close(serviceDone)
-	}()
-
-	// websocket service
-	service2 := tchatroom.NewService()
-
-	service2Done := make(chan struct{})
-
-	go func() {
-		// 启动web服务
-		log.Infof("server [web] Listening on %s", tchatroom.Address)
-		if err := service2.Run(); err != nil {
-			log.Fatal("server [web] Listening err: ", err)
-		}
-		close(service2Done)
 	}()
 
 	select {

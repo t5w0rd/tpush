@@ -44,6 +44,14 @@ type ResponseData struct {
 	Data interface{} `json:"data,omitempty"`
 }
 
+func (req *RequestData) DecodeData(data interface{}) error {
+	return mapstructure.Decode(req.Data, data)
+}
+
+func (rsp *ResponseData) EncodeData(data interface{}) {
+	rsp.Data = data
+}
+
 type request struct {
 	data *RequestData
 	cli  *client

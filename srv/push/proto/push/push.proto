@@ -6,6 +6,8 @@ service Push {
 	rpc Call(Request) returns (Response) {}
 	rpc Stream(StreamingRequest) returns (stream StreamingResponse) {}
 	rpc PingPong(stream Ping) returns (stream Pong) {}
+
+	rpc SendMsgToClient(SendMsgToClientReq) returns (SendMsgToClientRsp) {}
 }
 
 message Message {
@@ -34,4 +36,14 @@ message Ping {
 
 message Pong {
 	int64 stroke = 1;
+}
+
+message SendMsgToClientReq {
+	int64 id = 1;
+	string msg = 2;
+	int64 uid = 3;
+}
+
+message SendMsgToClientRsp {
+	string msg = 1;
 }

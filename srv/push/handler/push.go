@@ -2,11 +2,14 @@ package handler
 
 import (
 	"context"
+	"github.com/micro/go-micro/v2/errors"
 	log "github.com/micro/go-micro/v2/logger"
+	"tpush/internal/tchatroom"
 	push "tpush/srv/push/proto/push"
 )
 
 type Push struct {
+	Room* tchatroom.Room
 }
 
 // Call is a single request handler called via client.Call or the generated client code
@@ -43,4 +46,22 @@ func (h *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) er
 			return err
 		}
 	}
+}
+
+func (h *Push) SendMsgToClient(ctx context.Context, req *push.SendMsgToClientReq, rsp *push.SendMsgToClientRsp) error {
+	cli, ok := h.Room.Client(req.Id)
+	if !ok {
+		return errors.InternalServerError("push.Push.SendMsgToClient", "dest client not found")
+	}
+
+	data := &tchatroom.RecvMsgRsp{
+		Id: 0,
+		Uid: req.Uid,
+		Chan: "",
+		Msg: req.Msg,
+	}
+	go cli.Write(tchatroom.CmdRecvMsg, 0, data, 0, "", false)
+
+	rsp.Msg = "ok"
+	return nil
 }

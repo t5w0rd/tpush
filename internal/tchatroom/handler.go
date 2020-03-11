@@ -8,7 +8,7 @@ import (
 )
 
 type handler struct {
-	room *room
+	room *Room
 }
 
 type LoginReq struct {
@@ -256,11 +256,4 @@ func (h *handler) SendMsgToChan(req websocket.Request, rsp websocket.Response) e
 
 func (h *handler) RecvMsg(req websocket.Request, rsp websocket.Response) error {
 	return websocket.Error(rsp, ErrWrongCmd, "wrong cmd", false)
-}
-
-func newHandler() *handler {
-	h := &handler{
-		room: newRoom(),
-	}
-	return h
 }

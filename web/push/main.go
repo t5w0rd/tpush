@@ -23,11 +23,7 @@ func main() {
 	service.Handle("/", http.FileServer(http.Dir("html")))
 
 	// register call handler
-	service.HandleFunc("/push/call", handler.PushCall)
-
-	// register stream handler
-	service.HandleFunc("/push/stream", handler.PushStream)
-	service.HandleFunc("/push/pingpong", handler.PushPingPong)
+	service.HandleFunc("/cmd/snd2cli", handler.SendMsgToClient)
 
 	// run service
 	if err := service.Run(); err != nil {

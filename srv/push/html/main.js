@@ -127,7 +127,7 @@ window.addEventListener("load", function(evt) {
       return false;
     }
     ws.close();
-    print('<span style="color: red;">Request Canceled</span>');
+    //print('<span style="color: red;">Request Canceled</span>');
     return false;
   };
 

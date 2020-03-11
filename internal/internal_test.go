@@ -67,6 +67,4 @@ func TestStringsBuilder(t *testing.T) {
 }
 
 func TestSwitch(t *testing.T) {
-	a := 1
-	fmt.Println("#{a}")
 }

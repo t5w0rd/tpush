@@ -18,23 +18,23 @@ func genid() int64 {
 	return id
 }
 
-type room struct {
+type Room struct {
 	clients *internal.BiMap  // id <-> Client
 	where *internal.BIndex  // client <-> chan set
 	who *internal.Index  // uid <-> client set
 }
 
-func (r *room) AddClient(cli websocket.Client) int64 {
+func (r *Room) AddClient(cli websocket.Client) int64 {
 	id := genid()
 	r.clients.AddPair(id, cli)
 	return id
 }
 
-func (r *room) Login(cli websocket.Client, uid int64) {
+func (r *Room) Login(cli websocket.Client, uid int64) {
 	r.who.AddUserTag(uid, cli)
 }
 
-func (r *room) ClientsOfUser(uid int64) (websocket.ClientGroup, bool) {
+func (r *Room) ClientsOfUser(uid int64) (websocket.ClientGroup, bool) {
 	var out []interface{}
 	if ok := r.who.Tags(uid, &out); !ok {
 		return nil, false
@@ -42,13 +42,13 @@ func (r *room) ClientsOfUser(uid int64) (websocket.ClientGroup, bool) {
 	return websocket.NewClientGroup(out), true
 }
 
-func (r *room) RemoveClient(cli websocket.Client) {
+func (r *Room) RemoveClient(cli websocket.Client) {
 	r.clients.RemoveByValue(cli)
 	r.where.RemoveUser(cli)
 	r.who.RemoveTag(cli)
 }
 
-func (r *room) ClientEnterChannel(cli websocket.Client, chs ...string) {
+func (r *Room) ClientEnterChannel(cli websocket.Client, chs ...string) {
 	chs_ := make([]interface{}, len(chs))
 	for i, ch := range chs {
 		chs_[i] = ch
@@ -56,7 +56,7 @@ func (r *room) ClientEnterChannel(cli websocket.Client, chs ...string) {
 	r.where.AddUserTag(cli, chs_...)
 }
 
-func (r *room) ClientExitChannel(cli websocket.Client, chs ...string) {
+func (r *Room) ClientExitChannel(cli websocket.Client, chs ...string) {
 	chs_ := make([]interface{}, len(chs))
 	for i, ch := range chs {
 		chs_[i] = ch
@@ -64,7 +64,7 @@ func (r *room) ClientExitChannel(cli websocket.Client, chs ...string) {
 	r.where.RemoveUserTag(cli, chs_...)
 }
 
-func (r *room) ClientsInChannel(ch string) (websocket.ClientGroup, bool) {
+func (r *Room) ClientsInChannel(ch string) (websocket.ClientGroup, bool) {
 	var out []interface{}
 	if ok := r.where.Users(ch, &out); !ok {
 		return nil, false
@@ -72,7 +72,7 @@ func (r *room) ClientsInChannel(ch string) (websocket.ClientGroup, bool) {
 	return websocket.NewClientGroup(out), true
 }
 
-func (r *room) Client(id int64) (websocket.Client, bool) {
+func (r *Room) Client(id int64) (websocket.Client, bool) {
 	if cli_, ok := r.clients.Value(id); ok {
 		return cli_.(websocket.Client), true
 	} else {
@@ -80,7 +80,7 @@ func (r *room) Client(id int64) (websocket.Client, bool) {
 	}
 }
 
-func (r *room) ClientId(cli websocket.Client) (int64, bool) {
+func (r *Room) ClientId(cli websocket.Client) (int64, bool) {
 	if id_, ok := r.clients.Key(cli); ok {
 		return id_.(int64), true
 	} else {
@@ -88,7 +88,7 @@ func (r *room) ClientId(cli websocket.Client) (int64, bool) {
 	}
 }
 
-func (r *room) User(cli websocket.Client) (int64, bool) {
+func (r *Room) User(cli websocket.Client) (int64, bool) {
 	if uid_, ok := r.who.User(cli); ok {
 		return uid_.(int64), true
 	} else {
@@ -96,8 +96,8 @@ func (r *room) User(cli websocket.Client) (int64, bool) {
 	}
 }
 
-func newRoom() *room {
-	r := &room{
+func NewRoom() *Room {
+	r := &Room{
 		clients: internal.NewBiMap(),
 		where: internal.NewBIndex(),
 		who: internal.NewIndex(true),

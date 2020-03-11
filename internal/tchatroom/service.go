@@ -32,6 +32,7 @@ var (
 
 type Service struct {
 	mux *websocket.ServeMux
+	Room *Room
 }
 
 func (s *Service) Run() error {
@@ -39,7 +40,10 @@ func (s *Service) Run() error {
 }
 
 func NewService() *Service {
-	h := newHandler()
+	r := NewRoom()
+	h := &handler{
+		room: r,
+	}
 	mux := websocket.NewServeMux()
 	mux.HandleFunc(CmdLogin, h.Login)
 	mux.HandleFunc(CmdEnter, h.EnterChan)
@@ -62,6 +66,7 @@ func NewService() *Service {
 
 	s := &Service{
 		mux: mux,
+		Room: r,
 	}
 	return s
 }
