@@ -73,8 +73,8 @@ window.addEventListener("load", function(evt) {
             myid.value = rsp.data.id;
             print('<span style="color: blue;">Logged in</span>');
             break;
-          case "rcvmsg":
-            print('<span style="color: blue;">['+rsp.data.id+':'+rsp.data.uid+':'+rsp.data.chan+'] '+rsp.data.msg+'</span>');
+          case "rcvdata":
+            print('<span style="color: blue;">['+rsp.data.id+':'+rsp.data.uid+':'+rsp.data.chan+'] '+rsp.data.data+'</span>');
             break;
           default:
             //print('<span style="color: blue;"></span>');;
@@ -103,13 +103,13 @@ window.addEventListener("load", function(evt) {
         req.data = {chans: data.value.split(',')};
         break;
       case "snd2cli":
-        req.data = {id: parseInt(clientid.value), msg: data.value};
+        req.data = {ids: clientid.value.split(',').map(Number), data: data.value};
         break;
       case "snd2usr":
-        req.data = {uid: parseInt(uid.value), msg: data.value};
+        req.data = {uids: uid.value.split(',').map(Number), data: data.value};
         break;
       case "snd2chan":
-        req.data = {chan: chan.value, msg: data.value};
+        req.data = {chans: chan.value.split(','), data: data.value};
         break;
       default:
     }

@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"tpush/internal/tchatroom"
 )
 
 func TestBIndex_RemoveUser(t *testing.T) {
-	bi := NewBIndex()
+	bi := tchatroom.NewBIndex()
 	bi.AddUserTag("LJ", "NB")
 	bi.AddUserTag("LJ", "SWITCH")
 	bi.AddUserTag("CJL", "NB")
@@ -63,7 +64,4 @@ func TestStringsBuilder(t *testing.T) {
 	var b2 bytes.Buffer
 	b2.ReadFrom(&b)
 	t.Log(b2.String())
-}
-
-func TestSwitch(t *testing.T) {
 }

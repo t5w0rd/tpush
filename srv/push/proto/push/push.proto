@@ -7,7 +7,7 @@ service Push {
 	rpc Stream(StreamingRequest) returns (stream StreamingResponse) {}
 	rpc PingPong(stream Ping) returns (stream Pong) {}
 
-	rpc SendMsgToClient(SendMsgToClientReq) returns (SendMsgToClientRsp) {}
+	rpc SendToClient(SendToClientReq) returns (SendToClientRsp) {}
 }
 
 message Message {
@@ -38,12 +38,11 @@ message Pong {
 	int64 stroke = 1;
 }
 
-message SendMsgToClientReq {
+message SendToClientReq {
 	int64 id = 1;
-	string msg = 2;
+	string data = 2;
 	int64 uid = 3;
 }
 
-message SendMsgToClientRsp {
-	string msg = 1;
+message SendToClientRsp {
 }

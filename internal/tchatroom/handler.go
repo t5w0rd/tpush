@@ -33,46 +33,38 @@ type ExitChanReq struct {
 type ExitChanRsp struct {
 }
 
-type SendMsgToClientReq struct {
-	Id  int64  `json:"uid"`
-	Msg string `json:"msg"`
+type SendToClientReq struct {
+	Ids  []int64  `json:"uids"`
+	Data string `json:"data"`
 }
 
-type SendMsgToClientRsp struct {
+type SendToClientRsp struct {
 }
 
-type SendMsgToUserReq struct {
-	Uid int64  `json:"uid"`
-	Msg string `json:"msg"`
+type SendToUserReq struct {
+	Uids  []int64  `json:"uids"`
+	Data string `json:"data"`
 }
 
-type SendMsgToUserRsp struct {
+type SendToUserRsp struct {
 }
 
-type SendMsgToChanReq struct {
-	Chan string `json:"chan"`
-	Msg  string `json:"msg"`
+type SendToChanReq struct {
+	Chans []string `json:"chans"`
+	Data string `json:"data"`
 }
 
-type SendMsgToChanRsp struct {
+type SendToChanRsp struct {
 }
 
-type RecvMsgReq struct {
+type RecvDataReq struct {
 }
 
-type RecvMsgRsp struct {
+type RecvDataRsp struct {
 	Id   int64  `json:"id"`
 	Uid  int64  `json:"uid"`
 	Chan string `json:"chan"`
-	Msg  string `json:"msg"`
-}
-
-type HelloReq struct {
-	Name string `json:"name"`
-}
-
-type HelloRsp struct {
-	Say string `json:"say"`
+	Data string `json:"data"`
 }
 
 type loginDoneKey struct{}
@@ -111,11 +103,11 @@ func (h *handler) OnClose(cli websocket.Client) {
 }
 
 func (h *handler) Login(req websocket.Request, rsp websocket.Response) error {
-	var loginReq LoginReq
-	if err := req.DecodeData(&loginReq); err != nil {
+	var request LoginReq
+	if err := req.DecodeData(&request); err != nil {
 		return err
 	}
-	uid := loginReq.Uid
+	uid := request.Uid
 
 	loginDone := req.Client().ContextValue(loginDoneKey{}).(chan int64)
 	loginDone <- uid
@@ -130,12 +122,12 @@ func (h *handler) Login(req websocket.Request, rsp websocket.Response) error {
 }
 
 func (h *handler) EnterChan(req websocket.Request, rsp websocket.Response) error {
-	var enterChanReq EnterChanReq
-	if err := req.DecodeData(&enterChanReq); err != nil {
+	var request EnterChanReq
+	if err := req.DecodeData(&request); err != nil {
 		return err
 	}
 
-	h.room.ClientEnterChannel(req.Client(), enterChanReq.Chans...)
+	h.room.ClientEnterChannel(req.Client(), request.Chans...)
 
 	rsp.EncodeData(&EnterChanRsp{}, 0, "")
 
@@ -143,20 +135,20 @@ func (h *handler) EnterChan(req websocket.Request, rsp websocket.Response) error
 }
 
 func (h *handler) ExitChan(req websocket.Request, rsp websocket.Response) error {
-	var exitChanReq ExitChanReq
-	if err := req.DecodeData(&exitChanReq); err != nil {
+	var request ExitChanReq
+	if err := req.DecodeData(&request); err != nil {
 		return err
 	}
 
-	h.room.ClientExitChannel(req.Client(), exitChanReq.Chans...)
+	h.room.ClientExitChannel(req.Client(), request.Chans...)
 
 	rsp.EncodeData(&ExitChanRsp{}, 0, "")
 
 	return nil
 }
 
-func (h *handler) SendMsgToClient(req websocket.Request, rsp websocket.Response) error {
-	var request SendMsgToClientReq
+func (h *handler) SendToClient(req websocket.Request, rsp websocket.Response) error {
+	var request SendToClientReq
 	if err := req.DecodeData(&request); err != nil {
 		return err
 	}
@@ -171,25 +163,30 @@ func (h *handler) SendMsgToClient(req websocket.Request, rsp websocket.Response)
 		return websocket.Fatal(rsp, errors.New("client has no id"))
 	}
 
-	cli, ok := h.room.Client(request.Id)
-	if !ok {
-		return websocket.Error(rsp, ErrClientNotFound, "dest client not found", false)
-	}
-
-	data := &RecvMsgRsp{
+	data := &RecvDataRsp{
 		Id:   id,
 		Uid:  uid,
 		Chan: "",
-		Msg:  request.Msg,
+		Data: request.Data,
 	}
-	go cli.Write(CmdRecvMsg, 0, data, 0, "", false)
 
-	rsp.EncodeData(&SendMsgToClientRsp{}, 0, "")
+	if len(request.Ids) == 1 {
+		cli, ok := h.room.Client(request.Ids[0])
+		if !ok {
+			return websocket.Error(rsp, ErrClientNotFound, "dest client not found", false)
+		}
+		go cli.Write(CmdRecvData, 0, data, 0, "", false)
+	} else {
+		cligrp := h.room.Clients(request.Ids)
+		go cligrp.Write(CmdRecvData, 0, data, 0, "", false)
+	}
+
+	rsp.EncodeData(&SendToClientRsp{}, 0, "")
 	return nil
 }
 
-func (h *handler) SendMsgToUser(req websocket.Request, rsp websocket.Response) error {
-	var request SendMsgToUserReq
+func (h *handler) SendToUser(req websocket.Request, rsp websocket.Response) error {
+	var request SendToUserReq
 	if err := req.DecodeData(&request); err != nil {
 		return err
 	}
@@ -204,25 +201,29 @@ func (h *handler) SendMsgToUser(req websocket.Request, rsp websocket.Response) e
 		return websocket.Fatal(rsp, errors.New("client has no id"))
 	}
 
-	cligrp, ok := h.room.ClientsOfUser(request.Uid)
-	if !ok {
-		return websocket.Error(rsp, ErrUserNotFound, "dest user not found", false)
-	}
-
-	data := &RecvMsgRsp{
+	data := &RecvDataRsp{
 		Id:   id,
 		Uid:  uid,
 		Chan: "",
-		Msg:  request.Msg,
+		Data: request.Data,
 	}
-	go cligrp.Write(CmdRecvMsg, 0, data, 0, "", false)
+	if len(request.Uids) == 1 {
+		cligrp, ok := h.room.ClientsOfUser(request.Uids[0])
+		if !ok {
+			return websocket.Error(rsp, ErrUserNotFound, "dest user not found", false)
+		}
+		go cligrp.Write(CmdRecvData, 0, data, 0, "", false)
+	} else {
+		cligrp := h.room.ClientsOfUsers(request.Uids)
+		go cligrp.Write(CmdRecvData, 0, data, 0, "", false)
+	}
 
-	rsp.EncodeData(&SendMsgToUserRsp{}, 0, "")
+	rsp.EncodeData(&SendToUserRsp{}, 0, "")
 	return nil
 }
 
-func (h *handler) SendMsgToChan(req websocket.Request, rsp websocket.Response) error {
-	var request SendMsgToChanReq
+func (h *handler) SendToChan(req websocket.Request, rsp websocket.Response) error {
+	var request SendToChanReq
 	if err := req.DecodeData(&request); err != nil {
 		return err
 	}
@@ -237,23 +238,35 @@ func (h *handler) SendMsgToChan(req websocket.Request, rsp websocket.Response) e
 		return websocket.Fatal(rsp, errors.New("client has no id"))
 	}
 
-	cligrp, ok := h.room.ClientsInChannel(request.Chan)
-	if !ok {
-		return websocket.Error(rsp, ErrChanNotFound, "dest chan not found", false)
-	}
-
-	data := &RecvMsgRsp{
+	data := &RecvDataRsp{
 		Id:   id,
 		Uid:  uid,
-		Chan: request.Chan,
-		Msg:  request.Msg,
+		Data: request.Data,
 	}
-	go cligrp.Write(CmdRecvMsg, 0, data, 0, "", false)
 
-	rsp.EncodeData(&SendMsgToChanRsp{}, 0, "")
+	if len(request.Chans) == 1 {
+		cligrp, ok := h.room.ClientsInChannel(request.Chans[0])
+		if !ok {
+			return websocket.Error(rsp, ErrChanNotFound, "dest chan not found", false)
+		}
+		data.Chan = request.Chans[0]
+		go cligrp.Write(CmdRecvData, 0, data, 0, "", false)
+	} else {
+		go func() {
+			for _, ch := range request.Chans {
+				cligrp, ok := h.room.ClientsInChannel(ch)
+				if ok {
+					data.Chan = ch
+					cligrp.Write(CmdRecvData, 0, data, 0, "", false)
+				}
+			}
+		}()
+	}
+
+	rsp.EncodeData(&SendToChanRsp{}, 0, "")
 	return nil
 }
 
-func (h *handler) RecvMsg(req websocket.Request, rsp websocket.Response) error {
+func (h *handler) RecvData(req websocket.Request, rsp websocket.Response) error {
 	return websocket.Error(rsp, ErrWrongCmd, "wrong cmd", false)
 }

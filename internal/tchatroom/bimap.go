@@ -1,4 +1,4 @@
-package internal
+package tchatroom
 
 import "sync"
 
@@ -44,12 +44,40 @@ func (bi *BiMap) Value(key interface{}) (value interface{}, ok bool) {
 	return value, ok
 }
 
+func (bi *BiMap) Values(keys []interface{}) (values []interface{}, oks []bool) {
+	bi.mu.RLock()
+	defer bi.mu.RUnlock()
+
+	size := len(keys)
+	values = make([]interface{}, size)
+	oks = make([]bool, size)
+
+	for i, key := range keys {
+		values[i], oks[i] = bi.kv[key]
+	}
+	return values, oks
+}
+
 func (bi *BiMap) Key(value interface{}) (key interface{}, ok bool) {
 	bi.mu.RLock()
 	defer bi.mu.RUnlock()
 
 	key, ok = bi.vk[value]
 	return key, ok
+}
+
+func (bi *BiMap) Keys(values []interface{}) (keys []interface{}, oks []bool) {
+	bi.mu.RLock()
+	defer bi.mu.RUnlock()
+
+	size := len(keys)
+	keys = make([]interface{}, size)
+	oks = make([]bool, size)
+
+	for i, value := range values {
+		keys[i], oks[i] = bi.vk[value]
+	}
+	return keys, oks
 }
 
 func NewBiMap() *BiMap {

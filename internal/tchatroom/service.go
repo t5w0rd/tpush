@@ -7,13 +7,13 @@ import (
 )
 
 const (
-	CmdLogin           = "login"
-	CmdEnter           = "enter"
-	CmdExit            = "exit"
-	CmdSendMsgToClient = "snd2cli"
-	CmdSendMsgToUser   = "snd2usr"
-	CmdSendMsgToChan   = "snd2chan"
-	CmdRecvMsg         = "rcvmsg"
+	CmdLogin        = "login"
+	CmdEnter        = "enter"
+	CmdExit         = "exit"
+	CmdSendToClient = "snd2cli"
+	CmdSendToUser   = "snd2usr"
+	CmdSendToChan   = "snd2chan"
+	CmdRecvData     = "rcvdata"
 
 	ErrNotLogin       = -11
 	ErrLoginFailed    = -12
@@ -48,10 +48,10 @@ func NewService() *Service {
 	mux.HandleFunc(CmdLogin, h.Login)
 	mux.HandleFunc(CmdEnter, h.EnterChan)
 	mux.HandleFunc(CmdExit, h.ExitChan)
-	mux.HandleFunc(CmdSendMsgToClient, h.SendMsgToClient)
-	mux.HandleFunc(CmdSendMsgToUser, h.SendMsgToUser)
-	mux.HandleFunc(CmdSendMsgToChan, h.SendMsgToChan)
-	mux.HandleFunc(CmdRecvMsg, h.RecvMsg)
+	mux.HandleFunc(CmdSendToClient, h.SendToClient)
+	mux.HandleFunc(CmdSendToUser, h.SendToUser)
+	mux.HandleFunc(CmdSendToChan, h.SendToChan)
+	mux.HandleFunc(CmdRecvData, h.RecvData)
 	ws := websocket.Server(
 		ClientCycle,
 		mux,

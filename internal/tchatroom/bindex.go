@@ -1,4 +1,4 @@
-package internal
+package tchatroom
 
 import (
 	"sync"
@@ -123,6 +123,30 @@ func (bi *BIndex) Users(tag interface{}, output interface{}) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func (bi *BIndex) SelectUsers(tags []interface{}, output interface{}) {
+	bi.mu.RLock()
+	defer bi.mu.RUnlock()
+
+	var users *[]interface{}
+	switch output.(type) {
+	case *[]interface{}:
+		users = output.(*[]interface{})
+		*users = (*users)[:0]
+	default:
+		return
+	}
+
+	for _, tag := range tags {
+		// 反向索引
+		userSet, ok := bi.tagToUserSet[tag]
+		if ok {
+			for user, _ := range userSet {
+				*users = append(*users, user)
+			}
+		}
 	}
 }
 
@@ -295,6 +319,29 @@ func (i *Index) Tags(user interface{}, output interface{}) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func (i *Index) SelectTags(users []interface{}, output interface{}) {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+
+	var tags *[]interface{}
+	switch output.(type) {
+	case *[]interface{}:
+		tags = output.(*[]interface{})
+		*tags = (*tags)[:0]
+	default:
+		return
+	}
+
+	for _, user := range users {
+		tagSet, ok := i.userToTagSet[user]
+		if ok {
+			for tag, _ := range tagSet {
+				*tags = append(*tags, tag)
+			}
+		}
 	}
 }
 

@@ -48,20 +48,19 @@ func (h *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) er
 	}
 }
 
-func (h *Push) SendMsgToClient(ctx context.Context, req *push.SendMsgToClientReq, rsp *push.SendMsgToClientRsp) error {
+func (h *Push) SendToClient(ctx context.Context, req *push.SendToClientReq, rsp *push.SendToClientRsp) error {
 	cli, ok := h.Room.Client(req.Id)
 	if !ok {
-		return errors.InternalServerError("push.Push.SendMsgToClient", "dest client not found")
+		return errors.InternalServerError("push.Push.SendToClient", "dest client not found")
 	}
 
-	data := &tchatroom.RecvMsgRsp{
+	data := &tchatroom.RecvDataRsp{
 		Id:   0,
 		Uid:  req.Uid,
 		Chan: "",
-		Msg:  req.Msg,
+		Data: req.Data,
 	}
-	go cli.Write(tchatroom.CmdRecvMsg, 0, data, 0, "", false)
+	go cli.Write(tchatroom.CmdRecvData, 0, data, 0, "", false)
 
-	rsp.Msg = "ok"
 	return nil
 }

@@ -21,7 +21,6 @@ type Request interface {
 	Command() string
 	Sequence() int64
 	DecodeData(data interface{}) error
-	//ContextValue(key interface{}) interface{}
 	Client() Client
 }
 
@@ -72,10 +71,6 @@ func (req *request) Sequence() int64 {
 func (req *request) DecodeData(data interface{}) error {
 	return mapstructure.Decode(req.data.Data, data)
 }
-
-//func (req *request) ContextValue(key interface{}) interface{} {
-//	return req.cli.ctx.Value(key)
-//}
 
 type response struct {
 	data *ResponseData

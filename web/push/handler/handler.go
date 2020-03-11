@@ -33,7 +33,7 @@ func handle(handler func(request *websocket.RequestData, response *websocket.Res
 
 func SendMsgToClient(w http.ResponseWriter, r *http.Request) {
 	handle(func(request *websocket.RequestData, response *websocket.ResponseData) error {
-		var req tchatroom.SendMsgToClientReq
+		var req tchatroom.SendToClientReq
 		if err := request.DecodeData(&req); err != nil {
 			return err
 		}
@@ -42,12 +42,12 @@ func SendMsgToClient(w http.ResponseWriter, r *http.Request) {
 		pushCli := push.NewPushService("tpush.srv.push", client.DefaultClient)
 		if _, err := pushCli.SendMsgToClient(context.TODO(), &push.SendMsgToClientReq{
 			Id:  req.Id,
-			Msg: req.Msg,
+			Msg: req.Data,
 		}); err != nil {
 			return err
 		}
 
-		rsp := &tchatroom.SendMsgToClientRsp{}
+		rsp := &tchatroom.SendToClientRsp{}
 		response.EncodeData(rsp)
 
 		return nil
