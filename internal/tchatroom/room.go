@@ -2,7 +2,7 @@ package tchatroom
 
 import (
 	"sync/atomic"
-	"tpush/internal/websocket"
+	"tpush/internal/twebsocket"
 )
 
 var (
@@ -23,49 +23,51 @@ type Room struct {
 	who     *Index  // uid <-> client set
 }
 
-func (r *Room) AddClient(cli websocket.Client) int64 {
+func (r *Room) AddClient(cli twebsocket.Client) int64 {
 	id := genid()
 	r.clients.AddPair(id, cli)
 	return id
 }
 
-func (r *Room) Login(cli websocket.Client, uid int64) {
+func (r *Room) Login(cli twebsocket.Client, uid int64) {
 	r.who.AddUserTag(uid, cli)
 }
 
-func (r *Room) ClientsOfUser(uid int64) (websocket.ClientGroup, bool) {
+func (r *Room) ClientsOfUser(uid int64) (twebsocket.ClientGroup, bool) {
 	var out []interface{}
 	if ok := r.who.Tags(uid, &out); !ok {
 		return nil, false
 	}
-	return websocket.NewClientGroup(out), true
+	return twebsocket.NewClientGroup(out), true
 }
 
-func (r *Room) ClientsOfUsers(uids []int64) websocket.ClientGroup {
+func (r *Room) ClientsOfUsers(uids []int64) twebsocket.ClientGroup {
 	uids_ := make([]interface{}, len(uids))
 	for i, uid := range uids {
 		uids_[i] = uid
 	}
 	var out []interface{}
 	r.who.SelectTags(uids_, &out)
-	return websocket.NewClientGroup(out)
+	return twebsocket.NewClientGroup(out)
 }
 
-func (r *Room) RemoveClient(cli websocket.Client) {
+func (r *Room) RemoveClient(cli twebsocket.Client) {
 	r.clients.RemoveByValue(cli)
 	r.where.RemoveUser(cli)
 	r.who.RemoveTag(cli)
 }
 
-func (r *Room) ClientEnterChannel(cli websocket.Client, chs ...string) {
-	chs_ := make([]interface{}, len(chs))
-	for i, ch := range chs {
-		chs_[i] = ch
+func (r *Room) ClientEnterChannel(cli twebsocket.Client, chs ...string) {
+	chs_ := make([]interface{}, 0, len(chs))
+	for _, ch := range chs {
+		if len(ch) != 0 {
+			chs_ = append(chs_, ch)
+		}
 	}
 	r.where.AddUserTag(cli, chs_...)
 }
 
-func (r *Room) ClientExitChannel(cli websocket.Client, chs ...string) {
+func (r *Room) ClientExitChannel(cli twebsocket.Client, chs ...string) {
 	chs_ := make([]interface{}, len(chs))
 	for i, ch := range chs {
 		chs_[i] = ch
@@ -73,33 +75,33 @@ func (r *Room) ClientExitChannel(cli websocket.Client, chs ...string) {
 	r.where.RemoveUserTag(cli, chs_...)
 }
 
-func (r *Room) ClientsInChannel(ch string) (websocket.ClientGroup, bool) {
+func (r *Room) ClientsInChannel(ch string) (twebsocket.ClientGroup, bool) {
 	var out []interface{}
 	if ok := r.where.Users(ch, &out); !ok {
 		return nil, false
 	}
-	return websocket.NewClientGroup(out), true
+	return twebsocket.NewClientGroup(out), true
 }
 
-func (r *Room) ClientsInChannels(chs []string) websocket.ClientGroup {
+func (r *Room) ClientsInChannels(chs []string) twebsocket.ClientGroup {
 	chs_ := make([]interface{}, len(chs))
 	for i, ch := range chs {
 		chs_[i] = ch
 	}
 	var out []interface{}
 	r.where.SelectUsers(chs_, &out)
-	return websocket.NewClientGroup(out)
+	return twebsocket.NewClientGroup(out)
 }
 
-func (r *Room) Client(id int64) (websocket.Client, bool) {
+func (r *Room) Client(id int64) (twebsocket.Client, bool) {
 	if cli_, ok := r.clients.Value(id); ok {
-		return cli_.(websocket.Client), true
+		return cli_.(twebsocket.Client), true
 	} else {
 		return nil, false
 	}
 }
 
-func (r *Room) Clients(ids []int64) websocket.ClientGroup {
+func (r *Room) Clients(ids []int64) twebsocket.ClientGroup {
 	ids_ := make([]interface{}, len(ids))
 	for i, id := range ids {
 		ids_[i] = id
@@ -111,10 +113,10 @@ func (r *Room) Clients(ids []int64) websocket.ClientGroup {
 			clis = append(clis, clis_[i])
 		}
 	}
-	return websocket.NewClientGroup(clis)
+	return twebsocket.NewClientGroup(clis)
 }
 
-func (r *Room) ClientId(cli websocket.Client) (int64, bool) {
+func (r *Room) ClientId(cli twebsocket.Client) (int64, bool) {
 	if id_, ok := r.clients.Key(cli); ok {
 		return id_.(int64), true
 	} else {
@@ -122,7 +124,7 @@ func (r *Room) ClientId(cli websocket.Client) (int64, bool) {
 	}
 }
 
-func (r *Room) User(cli websocket.Client) (int64, bool) {
+func (r *Room) User(cli twebsocket.Client) (int64, bool) {
 	if uid_, ok := r.who.User(cli); ok {
 		return uid_.(int64), true
 	} else {

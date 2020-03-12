@@ -13,6 +13,11 @@ build: proto
 
 	CGO_ENABLED="0" GOOS="linux" go build -o push-srv *.go
 
+.PHONY: debug
+debug: proto
+
+	go build -o dbg-push-srv *.go
+
 .PHONY: test
 test:
 	go test -v ./... -cover

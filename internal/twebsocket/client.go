@@ -1,4 +1,4 @@
-package websocket
+package twebsocket
 
 import (
 	"bytes"
@@ -44,15 +44,21 @@ func (cg *clientGroup) Clients(output *[]Client) {
 }
 
 func (cg *clientGroup) Write(cmd string, seq int64, data interface{}, code int32, msg string, immed bool) {
+	if len(cg.clients) == 0 {
+		return
+	}
+
 	rspData := &ResponseData{
 		Cmd:  cmd,
 		Seq:  seq,
 		Code: code,
 		Msg:  msg,
-		Data: data,
 	}
+	_ = rspData.EncodeData(data)
 	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(rspData)
+	if err := json.NewEncoder(&buf).Encode(rspData); err != nil {
+		return
+	}
 
 	for _, c := range cg.clients {
 		cli := c.(*client)
@@ -88,7 +94,7 @@ func (c *client) AddContextValue(key, value interface{}) {
 }
 
 func (c *client) Close() {
-	c.conn.Close()
+	_ = c.conn.Close()
 }
 
 func (c *client) shutdown() {
@@ -98,7 +104,7 @@ func (c *client) shutdown() {
 		return
 	}
 
-	c.conn.Close()
+	_ = c.conn.Close()
 	c.writeTimer.Reset(0)
 	c.closed = true
 	c.mtx.Unlock()
@@ -112,11 +118,12 @@ func (c *client) Write(cmd string, seq int64, data interface{}, code int32, msg 
 		Seq:  seq,
 		Code: code,
 		Msg:  msg,
-		Data: data,
 	}
+	_ = rspData.EncodeData(data)
 	var buf bytes.Buffer
-	json.NewEncoder(&buf).Encode(rspData)
-
+	if err := json.NewEncoder(&buf).Encode(rspData); err != nil {
+		return
+	}
 	c.write(buf.Bytes(), immed)
 }
 
@@ -209,7 +216,10 @@ func (c *client) run() error {
 			}
 
 			buf.Reset()
-			en.Encode(rsp.data)
+			if err := en.Encode(rsp.data); err != nil {
+				log.Error(err)
+				return err
+			}
 			c.write(buf.Bytes(), req.data.Immed)
 		}
 	}

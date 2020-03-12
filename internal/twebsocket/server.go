@@ -1,10 +1,9 @@
-package websocket
+package twebsocket
 
 import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	log "github.com/micro/go-micro/v2/logger"
-	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"sync"
 	"time"
@@ -16,71 +15,6 @@ var (
 		WriteBufferSize: 1024,
 	}
 )
-
-type Request interface {
-	Command() string
-	Sequence() int64
-	DecodeData(data interface{}) error
-	Client() Client
-}
-
-type Response interface {
-	EncodeData(data interface{}, code int32, msg string)
-}
-
-type RequestData struct {
-	Cmd   string      `json:"cmd"`
-	Seq   int64       `json:"seq"`
-	Immed bool        `json:"immed,omitempty"`
-	Data  interface{} `json:"data"`
-}
-
-type ResponseData struct {
-	Cmd  string      `json:"cmd"`
-	Seq  int64       `json:"seq"`
-	Code int32       `json:"code"`
-	Msg  string      `json:"msg,omitempty"`
-	Data interface{} `json:"data,omitempty"`
-}
-
-func (req *RequestData) DecodeData(data interface{}) error {
-	return mapstructure.Decode(req.Data, data)
-}
-
-func (rsp *ResponseData) EncodeData(data interface{}) {
-	rsp.Data = data
-}
-
-type request struct {
-	data *RequestData
-	cli  *client
-}
-
-func (req *request) Client() Client {
-	return req.cli
-}
-
-func (req *request) Command() string {
-	return req.data.Cmd
-}
-
-func (req *request) Sequence() int64 {
-	return req.data.Seq
-}
-
-func (req *request) DecodeData(data interface{}) error {
-	return mapstructure.Decode(req.data.Data, data)
-}
-
-type response struct {
-	data *ResponseData
-}
-
-func (rsp *response) EncodeData(data interface{}, code int32, msg string) {
-	rsp.data.Code = code
-	rsp.data.Msg = msg
-	rsp.data.Data = data
-}
 
 type OpenHandler func(cli Client) error
 type CloseHandler func(cli Client)

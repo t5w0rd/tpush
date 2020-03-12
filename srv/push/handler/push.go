@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"github.com/micro/go-micro/v2/errors"
 	log "github.com/micro/go-micro/v2/logger"
 	"tpush/internal/tchatroom"
@@ -49,18 +51,94 @@ func (h *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) er
 }
 
 func (h *Push) SendToClient(ctx context.Context, req *push.SendToClientReq, rsp *push.SendToClientRsp) error {
-	cli, ok := h.Room.Client(req.Id)
-	if !ok {
-		return errors.InternalServerError("push.Push.SendToClient", "dest client not found")
-	}
-
 	data := &tchatroom.RecvDataRsp{
 		Id:   0,
 		Uid:  req.Uid,
 		Chan: "",
-		Data: req.Data,
 	}
-	go cli.Write(tchatroom.CmdRecvData, 0, data, 0, "", false)
+
+	var buf *bytes.Buffer
+	if req.Data != nil {
+		buf = bytes.NewBuffer(req.Data)
+	} else {
+		buf = bytes.NewBufferString(req.Datastr)
+	}
+	if err := json.NewDecoder(buf).Decode(&data.Data); err != nil {
+		return errors.InternalServerError("push.Push.SendToClient", err.Error())
+	}
+
+	if len(req.Ids) == 1 {
+		cli, ok := h.Room.Client(req.Ids[0])
+		if !ok {
+			return errors.InternalServerError("push.Push.SendToClient", "dest client not found")
+		}
+		go cli.Write(tchatroom.CmdRecvData, 0, data, 0, "", false)
+	} else {
+		cligrp := h.Room.Clients(req.Ids)
+		go cligrp.Write(tchatroom.CmdRecvData, 0, data, 0, "", false)
+	}
+
+	return nil
+}
+
+func (h *Push) SendToUser(ctx context.Context, req *push.SendToUserReq, rsp *push.SendToUserRsp) error {
+	data := &tchatroom.RecvDataRsp{
+		Id:   0,
+		Uid:  req.Uid,
+		Chan: "",
+	}
+
+	var buf *bytes.Buffer
+	if req.Data != nil {
+		buf = bytes.NewBuffer(req.Data)
+	} else {
+		buf = bytes.NewBufferString(req.Datastr)
+	}
+	if err := json.NewDecoder(buf).Decode(&data.Data); err != nil {
+		return errors.InternalServerError("push.Push.SendToUser", err.Error())
+	}
+
+	if len(req.Uids) == 1 {
+		cli, ok := h.Room.ClientsOfUser(req.Uids[0])
+		if !ok {
+			return errors.InternalServerError("push.Push.SendToUser", "dest user not found")
+		}
+		go cli.Write(tchatroom.CmdRecvData, 0, data, 0, "", false)
+	} else {
+		cligrp := h.Room.ClientsOfUsers(req.Uids)
+		go cligrp.Write(tchatroom.CmdRecvData, 0, data, 0, "", false)
+	}
+
+	return nil
+}
+
+func (h *Push) SendToChannel(ctx context.Context, req *push.SendToChannelReq, rsp *push.SendToChannelRsp) error {
+	data := &tchatroom.RecvDataRsp{
+		Id:   0,
+		Uid:  req.Uid,
+		Chan: "",
+	}
+
+	var buf *bytes.Buffer
+	if req.Data != nil {
+		buf = bytes.NewBuffer(req.Data)
+	} else {
+		buf = bytes.NewBufferString(req.Datastr)
+	}
+	if err := json.NewDecoder(buf).Decode(&data.Data); err != nil {
+		return errors.InternalServerError("push.Push.SendToChannel", err.Error())
+	}
+
+	if len(req.Chans) == 1 {
+		cli, ok := h.Room.ClientsInChannel(req.Chans[0])
+		if !ok {
+			return errors.InternalServerError("push.Push.SendToChannel", "dest channel not found")
+		}
+		go cli.Write(tchatroom.CmdRecvData, 0, data, 0, "", false)
+	} else {
+		cligrp := h.Room.ClientsInChannels(req.Chans)
+		go cligrp.Write(tchatroom.CmdRecvData, 0, data, 0, "", false)
+	}
 
 	return nil
 }

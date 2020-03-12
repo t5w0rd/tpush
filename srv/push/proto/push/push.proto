@@ -8,6 +8,8 @@ service Push {
 	rpc PingPong(stream Ping) returns (stream Pong) {}
 
 	rpc SendToClient(SendToClientReq) returns (SendToClientRsp) {}
+	rpc SendToUser(SendToUserReq) returns (SendToUserRsp) {}
+	rpc SendToChannel(SendToChannelReq) returns (SendToChannelRsp) {}
 }
 
 message Message {
@@ -39,10 +41,31 @@ message Pong {
 }
 
 message SendToClientReq {
-	int64 id = 1;
-	string data = 2;
-	int64 uid = 3;
+	repeated int64 ids = 1;
+	bytes data = 2;
+	string datastr = 3;
+	int64 uid = 4;
 }
 
 message SendToClientRsp {
+}
+
+message SendToUserReq {
+	repeated int64 uids = 1;
+	bytes data = 2;
+	string datastr = 3;
+	int64 uid = 4;
+}
+
+message SendToUserRsp {
+}
+
+message SendToChannelReq {
+	repeated string chans = 1;
+	bytes data = 2;
+	string datastr = 3;
+	int64 uid = 4;
+}
+
+message SendToChannelRsp {
 }

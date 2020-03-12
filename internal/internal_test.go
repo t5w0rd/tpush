@@ -65,3 +65,11 @@ func TestStringsBuilder(t *testing.T) {
 	b2.ReadFrom(&b)
 	t.Log(b2.String())
 }
+
+func TestNewBytes(t *testing.T) {
+	d := "我abc"
+	e := []rune(d)
+	f := []byte(d)
+	t.Log(e)
+	t.Log(f)
+}

@@ -3,7 +3,7 @@ package tchatroom
 import (
 	"net/http"
 	"time"
-	"tpush/internal/websocket"
+	"tpush/internal/twebsocket"
 )
 
 const (
@@ -31,7 +31,7 @@ var (
 )
 
 type Service struct {
-	mux  *websocket.ServeMux
+	mux  *twebsocket.ServeMux
 	Room *Room
 }
 
@@ -44,7 +44,7 @@ func NewService() *Service {
 	h := &handler{
 		room: r,
 	}
-	mux := websocket.NewServeMux()
+	mux := twebsocket.NewServeMux()
 	mux.HandleFunc(CmdLogin, h.Login)
 	mux.HandleFunc(CmdEnter, h.EnterChan)
 	mux.HandleFunc(CmdExit, h.ExitChan)
@@ -52,7 +52,7 @@ func NewService() *Service {
 	mux.HandleFunc(CmdSendToUser, h.SendToUser)
 	mux.HandleFunc(CmdSendToChan, h.SendToChan)
 	mux.HandleFunc(CmdRecvData, h.RecvData)
-	ws := websocket.Server(
+	ws := twebsocket.Server(
 		ClientCycle,
 		mux,
 		h.OnOpen,
