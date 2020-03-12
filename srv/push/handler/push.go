@@ -52,7 +52,7 @@ func (h *Push) PingPong(ctx context.Context, stream push.Push_PingPongStream) er
 
 func (h *Push) SendToClient(ctx context.Context, req *push.SendToClientReq, rsp *push.SendToClientRsp) error {
 	data := &tchatroom.RecvDataRsp{
-		Id:   0,
+		Id:   req.Id,
 		Uid:  req.Uid,
 		Chan: "",
 	}
@@ -83,7 +83,7 @@ func (h *Push) SendToClient(ctx context.Context, req *push.SendToClientReq, rsp 
 
 func (h *Push) SendToUser(ctx context.Context, req *push.SendToUserReq, rsp *push.SendToUserRsp) error {
 	data := &tchatroom.RecvDataRsp{
-		Id:   0,
+		Id:   req.Id,
 		Uid:  req.Uid,
 		Chan: "",
 	}
@@ -114,9 +114,8 @@ func (h *Push) SendToUser(ctx context.Context, req *push.SendToUserReq, rsp *pus
 
 func (h *Push) SendToChannel(ctx context.Context, req *push.SendToChannelReq, rsp *push.SendToChannelRsp) error {
 	data := &tchatroom.RecvDataRsp{
-		Id:   0,
+		Id:   req.Id,
 		Uid:  req.Uid,
-		Chan: "",
 	}
 
 	var buf *bytes.Buffer
@@ -130,14 +129,22 @@ func (h *Push) SendToChannel(ctx context.Context, req *push.SendToChannelReq, rs
 	}
 
 	if len(req.Chans) == 1 {
+		data.Chan = req.Chans[0]
 		cli, ok := h.Room.ClientsInChannel(req.Chans[0])
 		if !ok {
 			return errors.InternalServerError("push.Push.SendToChannel", "dest channel not found")
 		}
 		go cli.Write(tchatroom.CmdRecvData, 0, data, 0, "", false)
 	} else {
-		cligrp := h.Room.ClientsInChannels(req.Chans)
-		go cligrp.Write(tchatroom.CmdRecvData, 0, data, 0, "", false)
+		go func() {
+			for _, ch := range req.Chans {
+				cligrp, ok := h.Room.ClientsInChannel(ch)
+				if ok {
+					data.Chan = ch
+					cligrp.Write(tchatroom.CmdRecvData, 0, data, 0, "", false)
+				}
+			}
+		}()
 	}
 
 	return nil

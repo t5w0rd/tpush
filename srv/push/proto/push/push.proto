@@ -44,7 +44,8 @@ message SendToClientReq {
 	repeated int64 ids = 1;
 	bytes data = 2;
 	string datastr = 3;
-	int64 uid = 4;
+	int64 id = 4;
+	int64 uid = 5;
 }
 
 message SendToClientRsp {
@@ -54,7 +55,8 @@ message SendToUserReq {
 	repeated int64 uids = 1;
 	bytes data = 2;
 	string datastr = 3;
-	int64 uid = 4;
+	int64 id = 4;
+	int64 uid = 5;
 }
 
 message SendToUserRsp {
@@ -64,7 +66,8 @@ message SendToChannelReq {
 	repeated string chans = 1;
 	bytes data = 2;
 	string datastr = 3;
-	int64 uid = 4;
+	int64 id = 4;
+	int64 uid = 5;
 }
 
 message SendToChannelRsp {
