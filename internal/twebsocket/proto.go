@@ -14,6 +14,7 @@ func (p *Payload) EncodeData(data interface{}) error {
 	p.Data = data
 	return nil
 }
+
 type Request interface {
 	Command() string
 	Sequence() int64
@@ -26,17 +27,17 @@ type Response interface {
 }
 
 type RequestData struct {
-	Cmd   string      `json:"cmd"`
-	Seq   int64       `json:"seq"`
-	Immed bool        `json:"immed,omitempty"`
+	Cmd   string `json:"cmd"`
+	Seq   int64  `json:"seq"`
+	Immed bool   `json:"immed,omitempty"`
 	Payload
 }
 
 type ResponseData struct {
-	Cmd  string      `json:"cmd"`
-	Seq  int64       `json:"seq"`
-	Code int32       `json:"code"`
-	Msg  string      `json:"msg,omitempty"`
+	Cmd  string `json:"cmd"`
+	Seq  int64  `json:"seq"`
+	Code int32  `json:"code"`
+	Msg  string `json:"msg,omitempty"`
 	Payload
 }
 

@@ -1,11 +1,11 @@
 # Push Service
 
-This is the Push service
+This is the Route service
 
 Generated with
 
 ```
-micro new tpush/web/push --namespace=tpush --type=web
+micro new tpush/web/route --namespace=tpush --type=web
 ```
 
 ## Getting Started
@@ -16,9 +16,9 @@ micro new tpush/web/push --namespace=tpush --type=web
 
 ## Configuration
 
-- FQDN: tpush.web.push
+- FQDN: tpush.web.route
 - Type: web
-- Alias: push
+- Alias: route
 
 ## Dependencies
 
@@ -46,7 +46,7 @@ make build
 
 Run the service
 ```
-./push-web
+./route-web
 ```
 
 Build a docker image

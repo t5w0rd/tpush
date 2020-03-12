@@ -25,7 +25,7 @@ type ExitChanRsp struct {
 }
 
 type SendToClientReq struct {
-	Ids  []int64     `json:"uids"`
+	Ids []int64 `json:"uids"`
 	twebsocket.Payload
 }
 
@@ -33,7 +33,7 @@ type SendToClientRsp struct {
 }
 
 type SendToUserReq struct {
-	Uids []int64     `json:"uids"`
+	Uids []int64 `json:"uids"`
 	twebsocket.Payload
 }
 
@@ -41,7 +41,7 @@ type SendToUserRsp struct {
 }
 
 type SendToChanReq struct {
-	Chans []string    `json:"chans"`
+	Chans []string `json:"chans"`
 	twebsocket.Payload
 }
 
@@ -52,8 +52,8 @@ type RecvDataReq struct {
 }
 
 type RecvDataRsp struct {
-	Id   int64       `json:"id"`
-	Uid  int64       `json:"uid"`
-	Chan string      `json:"chan"`
+	Id   int64  `json:"id"`
+	Uid  int64  `json:"uid"`
+	Chan string `json:"chan"`
 	twebsocket.Payload
 }

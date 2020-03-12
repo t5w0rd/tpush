@@ -4,13 +4,13 @@ import (
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/web"
 	"net/http"
-	"tpush/web/push/handler"
+	"tpush/web/route/handler"
 )
 
 func main() {
 	// create new web service
 	service := web.NewService(
-		web.Name("tpush.web.push"),
+		web.Name("tpush.web.route"),
 		web.Version("latest"),
 	)
 

@@ -114,8 +114,8 @@ func (h *Push) SendToUser(ctx context.Context, req *push.SendToUserReq, rsp *pus
 
 func (h *Push) SendToChannel(ctx context.Context, req *push.SendToChannelReq, rsp *push.SendToChannelRsp) error {
 	data := &tchatroom.RecvDataRsp{
-		Id:   req.Id,
-		Uid:  req.Uid,
+		Id:  req.Id,
+		Uid: req.Uid,
 	}
 
 	var buf *bytes.Buffer
