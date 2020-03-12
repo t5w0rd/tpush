@@ -41,7 +41,7 @@ func (r *Room) ClientsOfUser(uid int64) (websocket.ClientGroup, bool) {
 	return websocket.NewClientGroup(out), true
 }
 
-func (r *Room) ClientsOfUsers(uids []int64) (websocket.ClientGroup) {
+func (r *Room) ClientsOfUsers(uids []int64) websocket.ClientGroup {
 	uids_ := make([]interface{}, len(uids))
 	for i, uid := range uids {
 		uids_[i] = uid
@@ -81,7 +81,7 @@ func (r *Room) ClientsInChannel(ch string) (websocket.ClientGroup, bool) {
 	return websocket.NewClientGroup(out), true
 }
 
-func (r *Room) ClientsInChannels(chs []string) (websocket.ClientGroup) {
+func (r *Room) ClientsInChannels(chs []string) websocket.ClientGroup {
 	chs_ := make([]interface{}, len(chs))
 	for i, ch := range chs {
 		chs_[i] = ch
@@ -99,7 +99,7 @@ func (r *Room) Client(id int64) (websocket.Client, bool) {
 	}
 }
 
-func (r *Room) Clients(ids []int64) (websocket.ClientGroup) {
+func (r *Room) Clients(ids []int64) websocket.ClientGroup {
 	ids_ := make([]interface{}, len(ids))
 	for i, id := range ids {
 		ids_[i] = id
