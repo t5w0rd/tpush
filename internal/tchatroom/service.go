@@ -27,6 +27,7 @@ const (
 var (
 	Address       = "0.0.0.0:8080"
 	ClientCycle   = time.Second * 1
+	LoginTimeout  = time.Second * 2
 	StreamPattern = "/stream"
 )
 

@@ -31,6 +31,12 @@ func main() {
 				EnvVars: []string{"PUSH_CYCLE"},
 				Value:   float64(tchatroom.ClientCycle / time.Second),
 			},
+			&cli.Float64Flag{
+				Name:    "login_timout",
+				Usage:   "Set login timeout(seconds)",
+				EnvVars: []string{"LOGIN_TIMEOUT"},
+				Value:   float64(tchatroom.LoginTimeout / time.Second),
+			},
 			&cli.StringFlag{
 				Name:    "stream_pattern",
 				Usage:   "Set the web server stream pattern",
@@ -55,6 +61,10 @@ func main() {
 
 			if f := c.String("push_cycle"); len(f) > 0 {
 				tchatroom.ClientCycle = time.Duration(float64(time.Second) * c.Float64("push_cycle"))
+			}
+
+			if f := c.String("login_timeout"); len(f) > 0 {
+				tchatroom.LoginTimeout = time.Duration(float64(time.Second) * c.Float64("login_timeout"))
 			}
 
 			if f := c.String("stream_pattern"); len(f) > 0 {

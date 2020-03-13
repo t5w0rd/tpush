@@ -33,7 +33,7 @@ func (h *handler) OnOpen(cli twebsocket.Client) error {
 			h.room.Login(cli, uid)
 			log.Debugf("client logged in succ, uid: %v", uid)
 			return
-		case <-time.After(time.Second * 2):
+		case <-time.After(LoginTimeout):
 			log.Error("client hasnot logged in for a long time")
 			cli.Close()
 			return
