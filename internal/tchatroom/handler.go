@@ -184,8 +184,8 @@ func (h *handler) SendToChan(req twebsocket.Request, rsp twebsocket.Response) er
 	}
 
 	data := &RecvDataRsp{
-		Id:  id,
-		Uid: uid,
+		Id:   id,
+		Uid:  uid,
 		Data: twebsocket.EncodeData(request.Data),
 	}
 
