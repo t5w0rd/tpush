@@ -32,7 +32,7 @@ func main() {
 				Value:   float64(tchatroom.ClientCycle / time.Second),
 			},
 			&cli.Float64Flag{
-				Name:    "login_timout",
+				Name:    "login_timeout",
 				Usage:   "Set login timeout(seconds)",
 				EnvVars: []string{"LOGIN_TIMEOUT"},
 				Value:   float64(tchatroom.LoginTimeout / time.Second),
