@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Websocket Stream</title>
+    <script src="./stress.js"></script>
+    <style>
+      table {
+        table-layout: fixed;
+      }
+      td {
+        border: 2px solid green;
+      }
+      td input {
+        width: 100%;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Websocket Stream</h2>
+    <table>
+      <tr>
+        <td valign="top" width="25%">
+          <p>
+            <form>
+              <p>
+                rcvcount: <br>
+                <input id="count" name="count" type="number" value="0" min="1"/>
+                uid: <br>
+                <input id="myuid" name="myuid" type="number" value="0" min="1"/>
+                dest id: <br>
+                <input id="clientid" name="clientid" type="text" value="0" min="1"/>
+                dest uid: <br>
+                <input id="uid" name="uid" type="text" value="0" min="1"/>
+                dest chan: <br>
+                <input id="chan" name="chan" type="text"/>
+                cmd: <br>
+                <input id="cmd" name="cmd" type="text" value="snd2cli"/>
+                data: <br>
+                <input id="data" name="data" type="text" value="Hello"/>
+              </p>
+              <p>
+                <button type="button" id="send">Send</button>
+                <button type="button" id="cancel">Cancel</button>
+              </p>
+              <p>
+                <button type="button" id="open">Open Connection</button>
+              </p>
+            </form>
+          </p>
+        </td>
+        <td valign="top" width="75%">
+          <div id="output"/>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

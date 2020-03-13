@@ -1,7 +1,5 @@
 package tchatroom
 
-import "tpush/internal/twebsocket"
-
 type LoginReq struct {
 	Uid int64 `json:"uid"`
 }
@@ -25,8 +23,8 @@ type ExitChanRsp struct {
 }
 
 type SendToClientReq struct {
-	Ids []int64 `json:"uids"`
-	twebsocket.Payload
+	Ids []int64 `json:"ids"`
+	Data interface{} `json:"data,omitempty"`
 }
 
 type SendToClientRsp struct {
@@ -34,7 +32,7 @@ type SendToClientRsp struct {
 
 type SendToUserReq struct {
 	Uids []int64 `json:"uids"`
-	twebsocket.Payload
+	Data interface{} `json:"data,omitempty"`
 }
 
 type SendToUserRsp struct {
@@ -42,7 +40,7 @@ type SendToUserRsp struct {
 
 type SendToChanReq struct {
 	Chans []string `json:"chans"`
-	twebsocket.Payload
+	Data interface{} `json:"data,omitempty"`
 }
 
 type SendToChanRsp struct {
@@ -55,5 +53,5 @@ type RecvDataRsp struct {
 	Id   int64  `json:"id"`
 	Uid  int64  `json:"uid"`
 	Chan string `json:"chan"`
-	twebsocket.Payload
+	Data interface{} `json:"data,omitempty"`
 }

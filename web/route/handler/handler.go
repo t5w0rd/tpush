@@ -35,7 +35,7 @@ func handle(handler func(request *twebsocket.RequestData, response *twebsocket.R
 func SendMsgToClient(w http.ResponseWriter, r *http.Request) {
 	handle(func(request *twebsocket.RequestData, response *twebsocket.ResponseData) error {
 		var req tchatroom.SendToClientReq
-		if err := request.DecodeData(&req); err != nil {
+		if err := twebsocket.DecodeData(request, &req); err != nil {
 			return err
 		}
 
@@ -55,7 +55,7 @@ func SendMsgToClient(w http.ResponseWriter, r *http.Request) {
 		}
 
 		rsp := &tchatroom.SendToClientRsp{}
-		_ = response.EncodeData(rsp)
+		response.Data = twebsocket.EncodeData(rsp)
 
 		return nil
 	}, w, r)

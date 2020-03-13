@@ -53,8 +53,9 @@ func (cg *clientGroup) Write(cmd string, seq int64, data interface{}, code int32
 		Seq:  seq,
 		Code: code,
 		Msg:  msg,
+		Data: EncodeData(data),
 	}
-	_ = rspData.EncodeData(data)
+
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(rspData); err != nil {
 		return
@@ -118,8 +119,9 @@ func (c *client) Write(cmd string, seq int64, data interface{}, code int32, msg 
 		Seq:  seq,
 		Code: code,
 		Msg:  msg,
+		Data: EncodeData(data),
 	}
-	_ = rspData.EncodeData(data)
+
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(rspData); err != nil {
 		return

@@ -472,6 +472,9 @@ func (i *Index) RemoveUser(user interface{}) {
 }
 
 func (i *Index) RemoveTag(tag interface{}) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	if i.tagToUser == nil {
 		return
 	}
@@ -486,6 +489,9 @@ func (i *Index) RemoveTag(tag interface{}) {
 }
 
 func (i *Index) User(tag interface{}) (interface{}, bool) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	if i.tagToUser == nil {
 		return nil, false
 	}

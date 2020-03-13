@@ -2,17 +2,13 @@ package twebsocket
 
 import "github.com/mitchellh/mapstructure"
 
-type Payload struct {
-	Data interface{} `json:"data,omitempty"`
+
+func DecodeData(payload interface{}, data interface{}) error {
+	return mapstructure.Decode(payload, data)
 }
 
-func (p *Payload) DecodeData(data interface{}) error {
-	return mapstructure.Decode(p.Data, data)
-}
-
-func (p *Payload) EncodeData(data interface{}) error {
-	p.Data = data
-	return nil
+func EncodeData(data interface{}) interface{} {
+	return data
 }
 
 type Request interface {
@@ -30,7 +26,7 @@ type RequestData struct {
 	Cmd   string `json:"cmd"`
 	Seq   int64  `json:"seq"`
 	Immed bool   `json:"immed,omitempty"`
-	Payload
+	Data interface{} `json:"data,omitempty"`
 }
 
 type ResponseData struct {
@@ -38,7 +34,7 @@ type ResponseData struct {
 	Seq  int64  `json:"seq"`
 	Code int32  `json:"code"`
 	Msg  string `json:"msg,omitempty"`
-	Payload
+	Data interface{} `json:"data,omitempty"`
 }
 
 type request struct {

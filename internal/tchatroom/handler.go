@@ -111,8 +111,8 @@ func (h *handler) SendToClient(req twebsocket.Request, rsp twebsocket.Response) 
 		Id:   id,
 		Uid:  uid,
 		Chan: "",
+		Data: twebsocket.EncodeData(request.Data),
 	}
-	_ = data.EncodeData(request.Data)
 
 	if len(request.Ids) == 1 {
 		cli, ok := h.room.Client(request.Ids[0])
@@ -149,8 +149,8 @@ func (h *handler) SendToUser(req twebsocket.Request, rsp twebsocket.Response) er
 		Id:   id,
 		Uid:  uid,
 		Chan: "",
+		Data: twebsocket.EncodeData(request.Data),
 	}
-	_ = data.EncodeData(request.Data)
 
 	if len(request.Uids) == 1 {
 		cligrp, ok := h.room.ClientsOfUser(request.Uids[0])
@@ -186,8 +186,8 @@ func (h *handler) SendToChan(req twebsocket.Request, rsp twebsocket.Response) er
 	data := &RecvDataRsp{
 		Id:  id,
 		Uid: uid,
+		Data: twebsocket.EncodeData(request.Data),
 	}
-	_ = data.EncodeData(request.Data)
 
 	if len(request.Chans) == 1 {
 		cligrp, ok := h.room.ClientsInChannel(request.Chans[0])

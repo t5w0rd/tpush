@@ -12,12 +12,7 @@ import (
 )
 
 func main() {
-	if err := log.Init(
-		log.WithLevel(log.DebugLevel),
-	); err != nil {
-		log.Fatal(err)
-		return
-	}
+	var loglevel log.Level
 
 	// New Service
 	service := micro.NewService(
@@ -42,6 +37,12 @@ func main() {
 				EnvVars: []string{"STREAM_PATTERN"},
 				Value:   tchatroom.StreamPattern,
 			},
+			&cli.StringFlag{
+				Name:    "log_level",
+				Usage:   "Set log level",
+				EnvVars: []string{"LOG_LEVEL"},
+				Value:   "debug",
+			},
 		),
 	)
 
@@ -60,9 +61,20 @@ func main() {
 				tchatroom.StreamPattern = f
 			}
 
+			if f := c.String("log_level"); len(f) > 0 {
+				loglevel, _ = log.GetLevel(f)
+			}
+
 			return nil
 		}),
 	)
+
+	if err := log.Init(
+		log.WithLevel(loglevel),
+	); err != nil {
+		log.Fatal(err)
+		return
+	}
 
 	// websocket service
 	service2 := tchatroom.NewService()
