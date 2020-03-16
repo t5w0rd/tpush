@@ -10,7 +10,7 @@ build:
 .PHONY: debug
 debug:
 
-	go build -o route-web *.go
+	go build -o dbg-route-web *.go
 
 .PHONY: test
 test:
