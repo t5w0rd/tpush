@@ -2,6 +2,7 @@ package tchatroom
 
 import (
 	"net/http"
+	"runtime"
 	"time"
 	"tpush/internal/twebsocket"
 )
@@ -26,7 +27,7 @@ const (
 
 var (
 	Address       = "0.0.0.0:8080"
-	ClientCycle   = time.Second * 1
+	PushCycle     = time.Second * 1
 	LoginTimeout  = time.Second * 2
 	StreamPattern = "/stream"
 )
@@ -54,11 +55,12 @@ func NewService() *Service {
 	mux.HandleFunc(CmdSendToChan, h.SendToChan)
 	mux.HandleFunc(CmdRecvData, h.RecvData)
 	ws := twebsocket.Server(
-		ClientCycle,
+		PushCycle,
 		mux,
 		h.OnOpen,
 		h.OnClose,
 	)
+	ws.StartWritePumps(runtime.NumCPU())
 
 	// 注册web服务处理器
 	http.Handle(StreamPattern, ws)

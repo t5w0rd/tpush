@@ -56,15 +56,18 @@ func (cg *clientGroup) Write(cmd string, seq int64, data interface{}, code int32
 		Data: EncodeData(data),
 	}
 
+	log.Info("clientgroup begin to encode")
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(rspData); err != nil {
 		return
 	}
 
+	log.Info("clientgroup begin to write")
 	for _, c := range cg.clients {
 		cli := c.(*client)
 		cli.write(buf.Bytes(), immed)
 	}
+	log.Info("clientgroup write complete")
 }
 
 func NewClientGroup(clients []interface{}) ClientGroup {
@@ -80,7 +83,7 @@ type client struct {
 	ctx        context.Context
 	writeq     []*ResponseData
 	writer     bytes.Buffer
-	writeTimer *time.Timer
+	//writeTimer *time.Timer
 	mtx        sync.Mutex
 	cycle      time.Duration
 	closed     bool
@@ -106,7 +109,7 @@ func (c *client) shutdown() {
 	}
 
 	_ = c.conn.Close()
-	c.writeTimer.Reset(0)
+	//c.writeTimer.Reset(0)
 	c.closed = true
 	c.mtx.Unlock()
 
@@ -130,6 +133,10 @@ func (c *client) Write(cmd string, seq int64, data interface{}, code int32, msg 
 }
 
 func (c *client) write(json []byte, immed bool) {
+	if immed {
+		c.send(json)
+		return
+	}
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
@@ -137,10 +144,11 @@ func (c *client) write(json []byte, immed bool) {
 		c.writer.WriteByte('[')
 		c.writer.Write(json)
 		if immed {
-			c.writeTimer.Reset(0)
+			//c.writeTimer.Reset(0)
 		} else {
-			c.writeTimer.Reset(c.cycle)
+			//c.writeTimer.Reset(c.cycle)
 		}
+		c.svc.ready <- c
 	} else {
 		c.writer.WriteByte(',')
 		c.writer.Write(json)
@@ -165,6 +173,11 @@ func (c *client) swap(writer io.Writer) (closed bool) {
 	return false
 }
 
+func (c *client) send(data []byte) error {
+	log.Debugf("%09d sent Response: %s", time.Now().UnixNano()%int64(time.Second), data)
+	return c.conn.WriteMessage(websocket.TextMessage, data)
+}
+
 func (c *client) run() error {
 	log.Debug("run start")
 	defer func() {
@@ -176,7 +189,7 @@ func (c *client) run() error {
 		return err
 	}
 
-	go c.writePump()
+	//go c.writePump()
 
 	var buf bytes.Buffer
 	en := json.NewEncoder(&buf)
@@ -227,36 +240,35 @@ func (c *client) run() error {
 	}
 }
 
-func (c *client) writePump() {
-	log.Debug("writePump start")
-	defer func() {
-		c.writeTimer.Stop()
-		c.shutdown()
-		log.Debug("writePump complete")
-	}()
-
-	var buf bytes.Buffer
-	for {
-		select {
-		case <-c.writeTimer.C:
-			buf.Reset()
-			closed := c.swap(&buf)
-			if closed {
-				return
-			}
-
-			if buf.Len() == 0 {
-				log.Debug("empty writeq")
-				continue
-			}
-
-			log.Debugf("%09d sent Response: %s", time.Now().UnixNano()%int64(time.Second), buf.Bytes())
-			if err := c.conn.WriteMessage(websocket.TextMessage, buf.Bytes()); err != nil {
-				return
-			}
-		}
-	}
-}
+//func (c *client) writePump() {
+//	log.Debug("writePump start")
+//	defer func() {
+//		c.writeTimer.Stop()
+//		c.shutdown()
+//		log.Debug("writePump complete")
+//	}()
+//
+//	var buf bytes.Buffer
+//	for {
+//		select {
+//		case <-c.writeTimer.C:
+//			buf.Reset()
+//			closed := c.swap(&buf)
+//			if closed {
+//				return
+//			}
+//
+//			if buf.Len() == 0 {
+//				log.Debug("empty writeq")
+//				continue
+//			}
+//
+//			if err := c.send(buf.Bytes()); err != nil {
+//				return
+//			}
+//		}
+//	}
+//}
 
 func newClient(svc *server, conn *websocket.Conn, cycle time.Duration) *client {
 	c := &client{
@@ -264,7 +276,7 @@ func newClient(svc *server, conn *websocket.Conn, cycle time.Duration) *client {
 		conn:       conn,
 		ctx:        context.Background(),
 		writeq:     make([]*ResponseData, 0, 100),
-		writeTimer: time.NewTimer(cycle),
+		//writeTimer: time.NewTimer(cycle),
 		cycle:      cycle,
 		closed:     false,
 	}

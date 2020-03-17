@@ -1,6 +1,7 @@
 package twebsocket
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/gorilla/websocket"
 	log "github.com/micro/go-micro/v2/logger"
@@ -8,6 +9,11 @@ import (
 	"sync"
 	"time"
 )
+
+type WritePumpHttpHandler interface {
+	http.Handler
+	StartWritePumps(workers int)
+}
 
 var (
 	upgrader = websocket.Upgrader{
@@ -83,9 +89,11 @@ func (mux *ServeMux) Handler(cmd string) (h HandlerFunc) {
 
 type server struct {
 	mux          *ServeMux
-	clientCycle  time.Duration
+	PushCycle    time.Duration
 	openHandler  OpenHandler
 	closeHandler CloseHandler
+
+	ready chan *client
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -96,16 +104,39 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Debug("new client has connected")
 
-	cli := newClient(s, conn, s.clientCycle)
+	cli := newClient(s, conn, s.PushCycle)
 	go cli.run()
 }
 
-func Server(clientCycle time.Duration, mux *ServeMux, openHandler OpenHandler, closeHandler CloseHandler) http.Handler {
+func (s *server) writePump() {
+	buf := new(bytes.Buffer)
+	for {
+		select {
+		case cli, ok := <-s.ready:
+			if !ok {
+				return
+			}
+			buf.Reset()
+			cli.swap(buf)
+			cli.send(buf.Bytes())
+		}
+	}
+}
+
+func (s *server) StartWritePumps(workers int) {
+	for i:=0; i<workers; i++ {
+		go s.writePump()
+	}
+}
+
+func Server(pushCycle time.Duration, mux *ServeMux, openHandler OpenHandler, closeHandler CloseHandler) WritePumpHttpHandler {
 	s := &server{
 		mux:          mux,
-		clientCycle:  clientCycle,
+		PushCycle:    pushCycle,
 		openHandler:  openHandler,
 		closeHandler: closeHandler,
+
+		ready:        make(chan *client, 100000),
 	}
 	return s
 }

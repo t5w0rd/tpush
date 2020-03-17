@@ -28,7 +28,7 @@ func main() {
 				Name:    "push_cycle",
 				Usage:   "Set the client push cycle(seconds)",
 				EnvVars: []string{"PUSH_CYCLE"},
-				Value:   float64(tchatroom.ClientCycle / time.Second),
+				Value:   float64(tchatroom.PushCycle / time.Second),
 			},
 			&cli.Float64Flag{
 				Name:    "login_timeout",
@@ -60,7 +60,7 @@ func main() {
 			}
 
 			if f := c.String("push_cycle"); len(f) > 0 {
-				tchatroom.ClientCycle = time.Duration(float64(time.Second) * c.Float64("push_cycle"))
+				tchatroom.PushCycle = time.Duration(float64(time.Second) * c.Float64("push_cycle"))
 			}
 
 			if f := c.String("login_timeout"); len(f) > 0 {
