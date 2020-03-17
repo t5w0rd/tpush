@@ -13,8 +13,6 @@ import (
 )
 
 func main() {
-	var loglevel log.Level
-
 	// New Service
 	service := micro.NewService(
 		micro.Name("tpush.srv.push"),
@@ -53,6 +51,7 @@ func main() {
 		),
 	)
 
+	var loglevel log.Level
 	// Initialise service
 	service.Init(
 		micro.Action(func(c *cli.Context) error {

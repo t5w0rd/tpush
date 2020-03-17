@@ -1,9 +1,11 @@
 package main
 
 import (
+	"github.com/micro/cli/v2"
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/web"
 	"net/http"
+	"tpush/internal/tchatroom"
 	"tpush/web/route/handler"
 )
 
@@ -12,11 +14,39 @@ func main() {
 	service := web.NewService(
 		web.Name("tpush.web.route"),
 		web.Version("latest"),
+		web.Flags(
+			&cli.StringFlag{
+				Name:    "web_server_address",
+				Usage:   "Set the web server address",
+				EnvVars: []string{"WEB_SERVER_ADDRESS"},
+				Value:   tchatroom.Address,
+			},
+			&cli.StringFlag{
+				Name:    "log_level",
+				Usage:   "Set log level",
+				EnvVars: []string{"LOG_LEVEL"},
+				Value:   "debug",
+			},
+		),
 	)
 
+	var loglevel log.Level
 	// initialise service
-	if err := service.Init(); err != nil {
+	if err := service.Init(
+		web.Action(func(c *cli.Context) {
+			if f := c.String("log_level"); len(f) > 0 {
+				loglevel, _ = log.GetLevel(f)
+			}
+		}),
+	); err != nil {
 		log.Fatal(err)
+	}
+
+	if err := log.Init(
+		log.WithLevel(loglevel),
+	); err != nil {
+		log.Fatal(err)
+		return
 	}
 
 	// register html handler
