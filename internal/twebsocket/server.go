@@ -104,7 +104,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Debug("new client has connected")
 
-	cli := newClient(s, conn, s.PushCycle)
+	cli := newClient(s, conn)
 	go cli.run()
 }
 

@@ -29,9 +29,9 @@ type ClientGroup interface {
 }
 
 var (
-	LeftSB = []byte("[")
-	RightSB = []byte("]")
-	Comma = []byte(",")
+	leftSB  = []byte("[")
+	rightSB = []byte("]")
+	comma   = []byte(",")
 )
 
 type clientGroup struct {
@@ -84,14 +84,11 @@ func NewClientGroup(clients []interface{}) ClientGroup {
 }
 
 type client struct {
-	svc    *server
-	conn   *websocket.Conn
-	ctx    context.Context
-	//writer bytes.Buffer
-	writeq [][]byte
-	//writeTimer *time.Timer
+	svc         *server
+	conn        *websocket.Conn
+	ctx         context.Context
+	writeq      [][]byte
 	mu          sync.Mutex
-	cycle       time.Duration
 	closed      bool
 	sendMu      sync.Mutex
 	immedWriter bytes.Buffer
@@ -146,18 +143,18 @@ func (c *client) write(json []byte, immed bool) {
 
 	if immed {
 		c.immedWriter.Reset()
-		c.immedWriter.WriteByte('[')
+		c.immedWriter.WriteByte(leftSB[0])
 		c.immedWriter.Write(json)
-		c.immedWriter.WriteByte(']')
+		c.immedWriter.WriteByte(rightSB[0])
 		c.send(c.immedWriter.Bytes())
 		return
 	}
 
 	if len(c.writeq) == 0 {
-		c.writeq = append(c.writeq, LeftSB, json)
+		c.writeq = append(c.writeq, leftSB, json)
 		c.svc.ready <- c
 	} else {
-		c.writeq = append(c.writeq, Comma, json)
+		c.writeq = append(c.writeq, comma, json)
 	}
 }
 
@@ -176,7 +173,7 @@ func (c *client) swap(writer io.Writer) (closed bool) {
 	for _, bs := range c.writeq {
 		writer.Write(bs)
 	}
-	writer.Write(RightSB)
+	writer.Write(rightSB)
 	c.writeq = c.writeq[:0]
 	return false
 }
@@ -250,43 +247,11 @@ func (c *client) run() error {
 	}
 }
 
-//func (c *client) writePump() {
-//	log.Debug("writePump start")
-//	defer func() {
-//		c.writeTimer.Stop()
-//		c.shutdown()
-//		log.Debug("writePump complete")
-//	}()
-//
-//	var buf bytes.Buffer
-//	for {
-//		select {
-//		case <-c.writeTimer.C:
-//			buf.Reset()
-//			closed := c.swap(&buf)
-//			if closed {
-//				return
-//			}
-//
-//			if buf.Len() == 0 {
-//				log.Debug("empty writeq")
-//				continue
-//			}
-//
-//			if err := c.send(buf.Bytes()); err != nil {
-//				return
-//			}
-//		}
-//	}
-//}
-
-func newClient(svc *server, conn *websocket.Conn, cycle time.Duration) *client {
+func newClient(svc *server, conn *websocket.Conn) *client {
 	c := &client{
-		svc:  svc,
-		conn: conn,
-		ctx:  context.Background(),
-		//writeTimer: time.NewTimer(cycle),
-		cycle:  cycle,
+		svc:    svc,
+		conn:   conn,
+		ctx:    context.Background(),
 		closed: false,
 	}
 	return c
