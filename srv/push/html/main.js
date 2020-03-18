@@ -23,6 +23,7 @@ window.addEventListener("load", function(evt) {
   myid = document.getElementById("myid");
   clientid = document.getElementById("clientid");
   uid = document.getElementById("uid");
+  uid.value = myuid.value
   chan = document.getElementById("chan");
   cmd  = document.getElementById("cmd");
   data  = document.getElementById("data");
