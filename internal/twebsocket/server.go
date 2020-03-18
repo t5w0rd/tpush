@@ -124,7 +124,7 @@ func (s *server) writePump() {
 }
 
 func (s *server) StartWritePumps(workers int) {
-	for i:=0; i<workers; i++ {
+	for i := 0; i < workers; i++ {
 		go s.writePump()
 	}
 }
@@ -136,7 +136,7 @@ func Server(pushCycle time.Duration, mux *ServeMux, openHandler OpenHandler, clo
 		openHandler:  openHandler,
 		closeHandler: closeHandler,
 
-		ready:        make(chan *client, 100000),
+		ready: make(chan *client, 100000),
 	}
 	return s
 }

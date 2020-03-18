@@ -78,15 +78,16 @@ func NewClientGroup(clients []interface{}) ClientGroup {
 }
 
 type client struct {
-	svc        *server
-	conn       *websocket.Conn
-	ctx        context.Context
-	writeq     []*ResponseData
-	writer     bytes.Buffer
+	svc    *server
+	conn   *websocket.Conn
+	ctx    context.Context
+	writer bytes.Buffer
 	//writeTimer *time.Timer
-	mtx        sync.Mutex
-	cycle      time.Duration
-	closed     bool
+	mu          sync.Mutex
+	cycle       time.Duration
+	closed      bool
+	sendMu      sync.Mutex
+	immedWriter bytes.Buffer
 }
 
 func (c *client) ContextValue(key interface{}) interface{} {
@@ -102,16 +103,16 @@ func (c *client) Close() {
 }
 
 func (c *client) shutdown() {
-	c.mtx.Lock()
+	c.mu.Lock()
 	if c.closed {
-		c.mtx.Unlock()
+		c.mu.Unlock()
 		return
 	}
 
 	_ = c.conn.Close()
 	//c.writeTimer.Reset(0)
 	c.closed = true
-	c.mtx.Unlock()
+	c.mu.Unlock()
 
 	c.svc.closeHandler(c)
 }
@@ -133,12 +134,17 @@ func (c *client) Write(cmd string, seq int64, data interface{}, code int32, msg 
 }
 
 func (c *client) write(json []byte, immed bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if immed {
-		c.send(json)
+		c.immedWriter.Reset()
+		c.immedWriter.WriteByte('[')
+		c.immedWriter.Write(json)
+		c.immedWriter.WriteByte(']')
+		c.send(c.immedWriter.Bytes())
 		return
 	}
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
 
 	if c.writer.Len() == 0 {
 		c.writer.WriteByte('[')
@@ -156,8 +162,8 @@ func (c *client) write(json []byte, immed bool) {
 }
 
 func (c *client) swap(writer io.Writer) (closed bool) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	if c.closed {
 		return true
@@ -175,6 +181,8 @@ func (c *client) swap(writer io.Writer) (closed bool) {
 
 func (c *client) send(data []byte) error {
 	log.Debugf("%09d sent Response: %s", time.Now().UnixNano()%int64(time.Second), data)
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
 	return c.conn.WriteMessage(websocket.TextMessage, data)
 }
 
@@ -272,13 +280,12 @@ func (c *client) run() error {
 
 func newClient(svc *server, conn *websocket.Conn, cycle time.Duration) *client {
 	c := &client{
-		svc:        svc,
-		conn:       conn,
-		ctx:        context.Background(),
-		writeq:     make([]*ResponseData, 0, 100),
+		svc:  svc,
+		conn: conn,
+		ctx:  context.Background(),
 		//writeTimer: time.NewTimer(cycle),
-		cycle:      cycle,
-		closed:     false,
+		cycle:  cycle,
+		closed: false,
 	}
 	return c
 }
