@@ -28,6 +28,12 @@ type ClientGroup interface {
 	Clients(output *[]Client)
 }
 
+var (
+	LeftSB = []byte("[")
+	RightSB = []byte("]")
+	Comma = []byte(",")
+)
+
 type clientGroup struct {
 	clients []interface{}
 }
@@ -81,7 +87,8 @@ type client struct {
 	svc    *server
 	conn   *websocket.Conn
 	ctx    context.Context
-	writer bytes.Buffer
+	//writer bytes.Buffer
+	writeq [][]byte
 	//writeTimer *time.Timer
 	mu          sync.Mutex
 	cycle       time.Duration
@@ -146,18 +153,11 @@ func (c *client) write(json []byte, immed bool) {
 		return
 	}
 
-	if c.writer.Len() == 0 {
-		c.writer.WriteByte('[')
-		c.writer.Write(json)
-		if immed {
-			//c.writeTimer.Reset(0)
-		} else {
-			//c.writeTimer.Reset(c.cycle)
-		}
+	if len(c.writeq) == 0 {
+		c.writeq = append(c.writeq, LeftSB, json)
 		c.svc.ready <- c
 	} else {
-		c.writer.WriteByte(',')
-		c.writer.Write(json)
+		c.writeq = append(c.writeq, Comma, json)
 	}
 }
 
@@ -169,13 +169,15 @@ func (c *client) swap(writer io.Writer) (closed bool) {
 		return true
 	}
 
-	if c.writer.Len() == 0 {
+	if len(c.writeq) == 0 {
 		return false
-	} else {
-		c.writer.WriteByte(']')
 	}
 
-	c.writer.WriteTo(writer) // write all and reset
+	for _, bs := range c.writeq {
+		writer.Write(bs)
+	}
+	writer.Write(RightSB)
+	c.writeq = c.writeq[:0]
 	return false
 }
 
