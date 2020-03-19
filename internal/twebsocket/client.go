@@ -92,6 +92,8 @@ type client struct {
 	closed      bool
 	sendMu      sync.Mutex
 	immedWriter bytes.Buffer
+	pongWait    time.Duration
+	sendWait    time.Duration
 }
 
 func (c *client) ContextValue(key interface{}) interface{} {
@@ -182,7 +184,15 @@ func (c *client) send(data []byte) error {
 	log.Debugf("%09d sent Response: %s", time.Now().UnixNano()%int64(time.Second), data)
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
+	c.conn.SetWriteDeadline(time.Now().Add(c.sendWait))
 	return c.conn.WriteMessage(websocket.TextMessage, data)
+}
+
+func (c *client) ping() error {
+	c.sendMu.Lock()
+	defer c.sendMu.Unlock()
+	c.conn.SetWriteDeadline(time.Now().Add(c.sendWait))
+	return c.conn.WriteMessage(websocket.PingMessage, nil)
 }
 
 func (c *client) run() error {
@@ -196,7 +206,8 @@ func (c *client) run() error {
 		return err
 	}
 
-	//go c.writePump()
+	c.conn.SetReadDeadline(time.Now().Add(c.pongWait))
+	c.conn.SetPongHandler(func(string) error { return c.conn.SetReadDeadline(time.Now().Add(c.pongWait)) })
 
 	var buf bytes.Buffer
 	en := json.NewEncoder(&buf)
@@ -247,12 +258,14 @@ func (c *client) run() error {
 	}
 }
 
-func newClient(svc *server, conn *websocket.Conn) *client {
+func newClient(svc *server, conn *websocket.Conn, pongWait time.Duration, sendWait time.Duration) *client {
 	c := &client{
-		svc:    svc,
-		conn:   conn,
-		ctx:    context.Background(),
-		closed: false,
+		svc:      svc,
+		conn:     conn,
+		ctx:      context.Background(),
+		closed:   false,
+		pongWait: pongWait,
+		sendWait: sendWait,
 	}
 	return c
 }

@@ -27,7 +27,7 @@ const (
 
 var (
 	Address       = "0.0.0.0:8080"
-	PushCycle     = time.Second * 1
+	PingPeriod    = time.Second * 30
 	LoginTimeout  = time.Second * 2
 	StreamPattern = "/stream"
 )
@@ -55,7 +55,7 @@ func NewService() *Service {
 	mux.HandleFunc(CmdSendToChan, h.SendToChan)
 	mux.HandleFunc(CmdRecvData, h.RecvData)
 	ws := twebsocket.Server(
-		PushCycle,
+		PingPeriod,
 		mux,
 		h.OnOpen,
 		h.OnClose,

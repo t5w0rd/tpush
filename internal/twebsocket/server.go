@@ -88,12 +88,18 @@ func (mux *ServeMux) Handler(cmd string) (h HandlerFunc) {
 }
 
 type server struct {
-	mux          *ServeMux
-	PushCycle    time.Duration
+	mux        *ServeMux
+	pingPeriod time.Duration
+	pongWait   time.Duration
+	sendWait   time.Duration
+
 	openHandler  OpenHandler
 	closeHandler CloseHandler
 
 	ready chan *client
+
+	mu      sync.Mutex
+	clients map[*client]struct{}
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +110,10 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Debug("new client has connected")
 
-	cli := newClient(s, conn)
+	cli := newClient(s, conn, s.pongWait, s.sendWait)
+	s.mu.Lock()
+	s.clients[cli] = struct{}{}
+	s.mu.Unlock()
 	go cli.run()
 }
 
@@ -123,20 +132,56 @@ func (s *server) writePump() {
 	}
 }
 
+func (s *server) pingPump() {
+	clients := make([]*client, 0, 10000)
+	disconnected := make([]*client, 0, 10000)
+	t := time.NewTicker(s.pingPeriod)
+	for {
+		select {
+		case <-t.C:
+			clients = clients[:0]
+			s.mu.Lock()
+			for cli, _ := range s.clients {
+				clients = append(clients, cli)
+			}
+			s.mu.Unlock()
+
+			disconnected = disconnected[:0]
+			for _, cli := range clients {
+				if err := cli.ping(); err != nil {
+					cli.Close()
+					disconnected = append(disconnected, cli)
+				}
+			}
+
+			s.mu.Lock()
+			for _, cli := range disconnected {
+				delete(s.clients, cli)
+			}
+			s.mu.Unlock()
+		}
+	}
+}
+
 func (s *server) StartWritePumps(workers int) {
+	go s.pingPump()
 	for i := 0; i < workers; i++ {
 		go s.writePump()
 	}
 }
 
-func Server(pushCycle time.Duration, mux *ServeMux, openHandler OpenHandler, closeHandler CloseHandler) WritePumpHttpHandler {
+func Server(pingPeriod time.Duration, mux *ServeMux, openHandler OpenHandler, closeHandler CloseHandler) WritePumpHttpHandler {
 	s := &server{
-		mux:          mux,
-		PushCycle:    pushCycle,
+		mux:        mux,
+		pingPeriod: pingPeriod,
+		pongWait:   pingPeriod + time.Second*2,
+		sendWait:   time.Second * 10,
+
 		openHandler:  openHandler,
 		closeHandler: closeHandler,
 
-		ready: make(chan *client, 100000),
+		ready:   make(chan *client, 100000),
+		clients: make(map[*client]struct{}),
 	}
 	return s
 }

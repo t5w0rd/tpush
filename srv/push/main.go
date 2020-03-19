@@ -25,10 +25,10 @@ func main() {
 				Value:   tchatroom.Address,
 			},
 			&cli.Float64Flag{
-				Name:    "push_cycle",
-				Usage:   "Set the client push cycle(seconds)",
-				EnvVars: []string{"PUSH_CYCLE"},
-				Value:   float64(tchatroom.PushCycle / time.Second),
+				Name:    "ping_period",
+				Usage:   "Set the client ping period(seconds)",
+				EnvVars: []string{"PING_PERIOD"},
+				Value:   float64(tchatroom.PingPeriod / time.Second),
 			},
 			&cli.Float64Flag{
 				Name:    "login_timeout",
@@ -59,8 +59,8 @@ func main() {
 				tchatroom.Address = f
 			}
 
-			if f := c.String("push_cycle"); len(f) > 0 {
-				tchatroom.PushCycle = time.Duration(float64(time.Second) * c.Float64("push_cycle"))
+			if f := c.String("ping_period"); len(f) > 0 {
+				tchatroom.PingPeriod = time.Duration(float64(time.Second) * c.Float64("ping_period"))
 			}
 
 			if f := c.String("login_timeout"); len(f) > 0 {
