@@ -46,6 +46,10 @@ func (h *handler) OnClose(cli twebsocket.Client) {
 	h.room.RemoveClient(cli)
 }
 
+func (h *handler) Ping(req twebsocket.Request, rsp twebsocket.Response) error {
+	return nil
+}
+
 func (h *handler) Login(req twebsocket.Request, rsp twebsocket.Response) error {
 	var request LoginReq
 	if err := req.DecodeData(&request); err != nil {

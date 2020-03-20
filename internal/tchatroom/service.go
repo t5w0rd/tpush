@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	CmdPing         = "ping"
 	CmdLogin        = "login"
 	CmdEnter        = "enter"
 	CmdExit         = "exit"
@@ -27,7 +28,7 @@ const (
 
 var (
 	Address       = "0.0.0.0:8080"
-	PingPeriod    = time.Second * 30
+	RecvTimeout   = time.Second * 30
 	LoginTimeout  = time.Second * 2
 	StreamPattern = "/stream"
 )
@@ -47,6 +48,7 @@ func NewService() *Service {
 		room: r,
 	}
 	mux := twebsocket.NewServeMux()
+	mux.HandleFunc(CmdPing, h.Ping)
 	mux.HandleFunc(CmdLogin, h.Login)
 	mux.HandleFunc(CmdEnter, h.EnterChan)
 	mux.HandleFunc(CmdExit, h.ExitChan)
@@ -55,7 +57,7 @@ func NewService() *Service {
 	mux.HandleFunc(CmdSendToChan, h.SendToChan)
 	mux.HandleFunc(CmdRecvData, h.RecvData)
 	ws := twebsocket.Server(
-		PingPeriod,
+		RecvTimeout,
 		mux,
 		h.OnOpen,
 		h.OnClose,

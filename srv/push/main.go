@@ -25,10 +25,10 @@ func main() {
 				Value:   tchatroom.Address,
 			},
 			&cli.Float64Flag{
-				Name:    "ping_period",
-				Usage:   "Set the client ping period(seconds)",
-				EnvVars: []string{"PING_PERIOD"},
-				Value:   float64(tchatroom.PingPeriod / time.Second),
+				Name:    "recv_timeout",
+				Usage:   "Set the client recv timeout(seconds)",
+				EnvVars: []string{"RECV_TIMEOUT"},
+				Value:   float64(tchatroom.RecvTimeout / time.Second),
 			},
 			&cli.Float64Flag{
 				Name:    "login_timeout",
@@ -59,8 +59,8 @@ func main() {
 				tchatroom.Address = f
 			}
 
-			if f := c.String("ping_period"); len(f) > 0 {
-				tchatroom.PingPeriod = time.Duration(float64(time.Second) * c.Float64("ping_period"))
+			if f := c.String("recv_timeout"); len(f) > 0 {
+				tchatroom.RecvTimeout = time.Duration(float64(time.Second) * c.Float64("recv_timeout"))
 			}
 
 			if f := c.String("login_timeout"); len(f) > 0 {

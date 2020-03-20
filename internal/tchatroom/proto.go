@@ -1,5 +1,11 @@
 package tchatroom
 
+type PingReq struct {
+}
+
+type PingRsp struct {
+}
+
 type LoginReq struct {
 	Uid int64 `json:"uid"`
 }

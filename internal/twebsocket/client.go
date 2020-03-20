@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 	log "github.com/micro/go-micro/v2/logger"
 	"io"
+	"net"
 	"sync"
 	"time"
 )
@@ -92,7 +93,7 @@ type client struct {
 	closed      bool
 	sendMu      sync.Mutex
 	immedWriter bytes.Buffer
-	pongWait    time.Duration
+	recvWait    time.Duration
 	sendWait    time.Duration
 }
 
@@ -184,14 +185,18 @@ func (c *client) send(data []byte) error {
 	log.Debugf("%09d sent Response: %s", time.Now().UnixNano()%int64(time.Second), data)
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
-	c.conn.SetWriteDeadline(time.Now().Add(c.sendWait))
+	if c.sendWait > 0 {
+		c.conn.SetWriteDeadline(time.Now().Add(c.sendWait))
+	}
 	return c.conn.WriteMessage(websocket.TextMessage, data)
 }
 
 func (c *client) ping() error {
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
-	c.conn.SetWriteDeadline(time.Now().Add(c.sendWait))
+	if c.sendWait > 0 {
+		c.conn.SetWriteDeadline(time.Now().Add(c.sendWait))
+	}
 	return c.conn.WriteMessage(websocket.PingMessage, nil)
 }
 
@@ -206,13 +211,14 @@ func (c *client) run() error {
 		return err
 	}
 
-	c.conn.SetReadDeadline(time.Now().Add(c.pongWait))
-	c.conn.SetPongHandler(func(string) error { return c.conn.SetReadDeadline(time.Now().Add(c.pongWait)) })
-
 	var buf bytes.Buffer
 	en := json.NewEncoder(&buf)
 	for {
 		var reqDatas []*RequestData
+		if c.recvWait > 0 {
+			c.conn.SetReadDeadline(time.Now().Add(c.recvWait))
+		}
+
 		if err := c.conn.ReadJSON(&reqDatas); err != nil {
 			if !websocket.IsCloseError(err) || websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				// 意外的错误
@@ -258,13 +264,20 @@ func (c *client) run() error {
 	}
 }
 
-func newClient(svc *server, conn *websocket.Conn, pongWait time.Duration, sendWait time.Duration) *client {
+func newClient(svc *server, conn *websocket.Conn, recvWait time.Duration, sendWait time.Duration, tcpKeepAlive bool) *client {
+	if tcpKeepAlive {
+		if sock, ok := conn.UnderlyingConn().(*net.TCPConn); ok {
+			sock.SetKeepAlive(true)
+			sock.SetKeepAlivePeriod(recvWait)
+		}
+	}
+
 	c := &client{
 		svc:      svc,
 		conn:     conn,
 		ctx:      context.Background(),
 		closed:   false,
-		pongWait: pongWait,
+		recvWait: recvWait,
 		sendWait: sendWait,
 	}
 	return c
