@@ -88,7 +88,7 @@ func main() {
 	}
 
 	// websocket service
-	redisAddress := "localhost:6379"
+	redisAddress := "10.8.9.100:6379"
 	redisPassword := ""
 
 	r := redis.NewClient(
@@ -106,6 +106,7 @@ func main() {
 		return
 	}
 	d := tchatroom.NewRedisDistribute("node1", r, time.Second*30)
+	d.Run()
 
 	service2 := tchatroom.NewService(
 		tchatroom.WithDistribute(d),

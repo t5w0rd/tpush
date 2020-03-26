@@ -32,7 +32,7 @@ func (d *distribute) Unregister(key string) {
 	d.unregCh <- key
 }
 
-func (d *distribute) startRefreshTtl(room *Room) (stopFunc func()) {
+func (d *distribute) Run() (stopFunc func()) {
 	stopCh := make(chan struct{})
 
 	stopFunc = func() {
@@ -41,22 +41,23 @@ func (d *distribute) startRefreshTtl(room *Room) (stopFunc func()) {
 
 	go func() {
 		registry := make(map[string]struct{})
+		t := time.NewTicker(refreshTtlPeriod)
 
 		for {
 			select {
 			case <-stopCh:
 				return
+
 			case key := <-d.regCh:
-				d.Register(key)
+				d.store.Set(key, d.nodeName, d.ttl)
 
 			case key := <-d.unregCh:
-				d.Unregister(key)
+				d.store.Del(key)
 
-			default:
+			case <-t.C:
 				for key, _ := range registry {
 					d.store.Set(key, d.nodeName, d.ttl)
 				}
-				time.Sleep(refreshTtlPeriod)
 			}
 		}
 	}()
