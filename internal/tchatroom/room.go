@@ -75,9 +75,9 @@ func (r *Room) RemoveClient(cli twebsocket.Client) {
 	if r.distribute != nil {
 		if id, ok := r.clients.Key(cli); ok {
 			r.distribute.Unregister(fmt.Sprintf(regClientKeyFmt, id))
-			if uid, ok := r.who.User(cli); !ok {
-				r.distribute.Unregister(fmt.Sprintf(regUserKeyFmt, uid))
-			}
+		}
+		if uid, ok := r.who.User(cli); !ok {
+			r.distribute.Unregister(fmt.Sprintf(regUserKeyFmt, uid))
 		}
 	}
 }
@@ -157,23 +157,13 @@ func (r *Room) User(cli twebsocket.Client) (int64, bool) {
 	}
 }
 
-type RoomOption func(r *Room)
-
-func NewRoom(opts ...RoomOption) *Room {
+func NewRoom(distribute Distribute) *Room {
 	r := &Room{
 		clients: NewBiMap(),
 		where:   NewBIndex(),
 		who:     NewIndex(true),
-	}
 
-	for _, opt := range opts {
-		opt(r)
+		distribute: distribute,
 	}
 	return r
-}
-
-func WithDistribute(distribute Distribute) RoomOption {
-	return func(r *Room) {
-		r.distribute = distribute
-	}
 }

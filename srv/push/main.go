@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/go-redis/redis/v7"
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
 	log "github.com/micro/go-micro/v2/logger"
@@ -87,7 +88,28 @@ func main() {
 	}
 
 	// websocket service
-	service2 := tchatroom.NewService()
+	redisAddress := "localhost:6379"
+	redisPassword := ""
+
+	r := redis.NewClient(
+		&redis.Options{
+			Addr:            redisAddress,
+			Password:        redisPassword, // no password set
+			DB:              0,             // use default DB
+			MaxRetries:      1,
+			MinRetryBackoff: 1,
+			MaxRetryBackoff: 64,
+		},
+	)
+	if _, err := r.Ping().Result(); err != nil {
+		log.Fatal(err)
+		return
+	}
+	d := tchatroom.NewRedisDistribute("node1", r, time.Second*30)
+
+	service2 := tchatroom.NewService(
+		tchatroom.WithDistribute(d),
+	)
 
 	service2Done := make(chan struct{})
 

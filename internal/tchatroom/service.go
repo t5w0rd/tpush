@@ -36,14 +36,21 @@ var (
 type Service struct {
 	mux  *twebsocket.ServeMux
 	Room *Room
+	opt  *Options
 }
 
 func (s *Service) Run() error {
 	return http.ListenAndServe(Address, nil)
 }
 
-func NewService() *Service {
-	r := NewRoom()
+func NewService(opts ...Option) *Service {
+	opt := new(Options)
+	for _, o := range opts {
+		o(opt)
+	}
+
+	r := NewRoom(opt.distribute)
+
 	h := &handler{
 		room: r,
 	}
@@ -72,6 +79,7 @@ func NewService() *Service {
 	s := &Service{
 		mux:  mux,
 		Room: r,
+		opt:  opt,
 	}
 	return s
 }
