@@ -1,8 +1,15 @@
 package tchatroom
 
 import (
+	"fmt"
 	"sync/atomic"
 	"tpush/internal/twebsocket"
+)
+
+const (
+	regClientKeyFmt  = "/ids/%d"
+	regUserKeyFmt    = "/uids/%d"
+	regChannelKeyFmt = "/chans/%s"
 )
 
 var (
@@ -19,8 +26,10 @@ func genid() int64 {
 
 type Room struct {
 	clients *BiMap  // id <-> Client
-	where   *BIndex // client <-> chan set
-	who     *Index  // uid <-> client set
+	where   *BIndex // Client -> channel set, channel -> Client set
+	who     *Index  // uid -> Client set
+
+	distribute Distribute
 }
 
 func (r *Room) AddClient(cli twebsocket.Client) int64 {
@@ -31,6 +40,13 @@ func (r *Room) AddClient(cli twebsocket.Client) int64 {
 
 func (r *Room) Login(cli twebsocket.Client, uid int64) {
 	r.who.AddUserTag(uid, cli)
+
+	if r.distribute != nil {
+		if id, ok := r.clients.Key(cli); ok {
+			r.distribute.Register(fmt.Sprintf(regClientKeyFmt, id))
+			r.distribute.Register(fmt.Sprintf(regUserKeyFmt, uid))
+		}
+	}
 }
 
 func (r *Room) ClientsOfUser(uid int64) (twebsocket.ClientGroup, bool) {
@@ -55,6 +71,15 @@ func (r *Room) RemoveClient(cli twebsocket.Client) {
 	r.clients.RemoveByValue(cli)
 	r.where.RemoveUser(cli)
 	r.who.RemoveTag(cli)
+
+	if r.distribute != nil {
+		if id, ok := r.clients.Key(cli); ok {
+			r.distribute.Unregister(fmt.Sprintf(regClientKeyFmt, id))
+			if uid, ok := r.who.User(cli); !ok {
+				r.distribute.Unregister(fmt.Sprintf(regUserKeyFmt, uid))
+			}
+		}
+	}
 }
 
 func (r *Room) ClientEnterChannel(cli twebsocket.Client, chs ...string) {
@@ -106,7 +131,7 @@ func (r *Room) Clients(ids []int64) twebsocket.ClientGroup {
 	for i, id := range ids {
 		ids_[i] = id
 	}
-	clis_, oks := r.clients.Values(ids_)
+	clis_, oks := r.clients.MultiValues(ids_)
 	clis := make([]interface{}, 0, len(ids))
 	for i, ok := range oks {
 		if ok {
@@ -132,11 +157,23 @@ func (r *Room) User(cli twebsocket.Client) (int64, bool) {
 	}
 }
 
-func NewRoom() *Room {
+type RoomOption func(r *Room)
+
+func NewRoom(opts ...RoomOption) *Room {
 	r := &Room{
 		clients: NewBiMap(),
 		where:   NewBIndex(),
 		who:     NewIndex(true),
 	}
+
+	for _, opt := range opts {
+		opt(r)
+	}
 	return r
+}
+
+func WithDistribute(distribute Distribute) RoomOption {
+	return func(r *Room) {
+		r.distribute = distribute
+	}
 }

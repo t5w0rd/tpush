@@ -10,6 +10,21 @@ type BiMap struct {
 	vk map[interface{}]interface{}
 }
 
+func (bi *BiMap) EveryPair(f func(key, value interface{}) bool, readonly bool) {
+	if readonly {
+		bi.mu.RLock()
+		defer bi.mu.RUnlock()
+	} else {
+		bi.mu.Lock()
+		defer bi.mu.Unlock()
+	}
+	for k, v := range bi.kv {
+		if f(k, v) == false {
+			break
+		}
+	}
+}
+
 func (bi *BiMap) AddPair(key, value interface{}) {
 	bi.mu.Lock()
 	defer bi.mu.Unlock()
@@ -46,7 +61,7 @@ func (bi *BiMap) Value(key interface{}) (value interface{}, ok bool) {
 	return value, ok
 }
 
-func (bi *BiMap) Values(keys []interface{}) (values []interface{}, oks []bool) {
+func (bi *BiMap) MultiValues(keys []interface{}) (values []interface{}, oks []bool) {
 	bi.mu.RLock()
 	defer bi.mu.RUnlock()
 
@@ -60,6 +75,27 @@ func (bi *BiMap) Values(keys []interface{}) (values []interface{}, oks []bool) {
 	return values, oks
 }
 
+func (bi *BiMap) AllValues(output interface{}) bool {
+	bi.mu.RLock()
+	defer bi.mu.RUnlock()
+
+	switch output.(type) {
+	case *[]interface{}:
+		values := output.(*[]interface{})
+		if size := len(bi.vk); cap(*values) < size {
+			*values = make([]interface{}, 0, size)
+		} else {
+			*values = (*values)[:0]
+		}
+		for v, _ := range bi.vk {
+			*values = append(*values, v)
+		}
+		return true
+	default:
+		return false
+	}
+}
+
 func (bi *BiMap) Key(value interface{}) (key interface{}, ok bool) {
 	bi.mu.RLock()
 	defer bi.mu.RUnlock()
@@ -68,7 +104,7 @@ func (bi *BiMap) Key(value interface{}) (key interface{}, ok bool) {
 	return key, ok
 }
 
-func (bi *BiMap) Keys(values []interface{}) (keys []interface{}, oks []bool) {
+func (bi *BiMap) MultiKeys(values []interface{}) (keys []interface{}, oks []bool) {
 	bi.mu.RLock()
 	defer bi.mu.RUnlock()
 
@@ -80,6 +116,27 @@ func (bi *BiMap) Keys(values []interface{}) (keys []interface{}, oks []bool) {
 		keys[i], oks[i] = bi.vk[value]
 	}
 	return keys, oks
+}
+
+func (bi *BiMap) AllKeys(output interface{}) bool {
+	bi.mu.RLock()
+	defer bi.mu.RUnlock()
+
+	switch output.(type) {
+	case *[]interface{}:
+		keys := output.(*[]interface{})
+		if size := len(bi.kv); cap(*keys) < size {
+			*keys = make([]interface{}, 0, size)
+		} else {
+			*keys = (*keys)[:0]
+		}
+		for k, _ := range bi.kv {
+			*keys = append(*keys, k)
+		}
+		return true
+	default:
+		return false
+	}
 }
 
 func NewBiMap() *BiMap {
@@ -496,11 +553,8 @@ func (i *Index) User(tag interface{}) (interface{}, bool) {
 		return nil, false
 	}
 
-	if user, ok := i.tagToUser[tag]; ok {
-		return user, true
-	} else {
-		return nil, false
-	}
+	user, ok := i.tagToUser[tag]
+	return user, ok
 }
 
 func NewIndex(reverse bool) *Index {

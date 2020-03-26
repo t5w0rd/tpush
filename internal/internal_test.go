@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/coreos/etcd/clientv3"
 	"reflect"
 	"testing"
+	"time"
 	"tpush/internal/tchatroom"
 )
 
@@ -72,4 +74,17 @@ func TestNewBytes(t *testing.T) {
 	f := []byte(d)
 	t.Log(e)
 	t.Log(f)
+}
+
+func TestEtcd(t *testing.T) {
+	cfg := clientv3.Config{
+		Endpoints: []string{"etcd-cluster-client"},
+	}
+	cli, err := clientv3.New(cfg)
+	if err != nil {
+		panic(err)
+	}
+	kv := clientv3.NewKV(cli)
+	kv.Put(nil, "", "", clientv3.WithPrevKV())
+	time.Now()
 }
