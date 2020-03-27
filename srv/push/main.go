@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/go-redis/redis/v7"
+	"github.com/coreos/etcd/clientv3"
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
 	log "github.com/micro/go-micro/v2/logger"
@@ -88,24 +88,17 @@ func main() {
 	}
 
 	// websocket service
-	redisAddress := "10.8.9.100:6379"
-	redisPassword := ""
-
-	r := redis.NewClient(
-		&redis.Options{
-			Addr:            redisAddress,
-			Password:        redisPassword, // no password set
-			DB:              0,             // use default DB
-			MaxRetries:      1,
-			MinRetryBackoff: 1,
-			MaxRetryBackoff: 64,
-		},
-	)
-	if _, err := r.Ping().Result(); err != nil {
+	storeAddress := "10.8.9.100:52379"
+	cfg := clientv3.Config{
+		Endpoints: []string{storeAddress},
+	}
+	c, err := clientv3.New(cfg)
+	if err != nil {
 		log.Fatal(err)
 		return
 	}
-	d := tchatroom.NewRedisDistribute("node1", r, time.Second*30)
+
+	d := tchatroom.NewEtcdDistribute("node1", c, time.Second*30)
 	d.Run()
 
 	service2 := tchatroom.NewService(

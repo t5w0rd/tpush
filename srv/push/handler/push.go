@@ -82,6 +82,8 @@ func (h *Push) SendToClient(ctx context.Context, req *push.SendToClientReq, rsp 
 }
 
 func (h *Push) SendToUser(ctx context.Context, req *push.SendToUserReq, rsp *push.SendToUserRsp) error {
+	log.Infof("rpc SendToUser")
+
 	data := &tchatroom.RecvDataRsp{
 		Id:   req.Id,
 		Uid:  req.Uid,

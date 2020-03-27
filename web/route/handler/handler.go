@@ -1,15 +1,15 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/micro/go-micro/v2/client/grpc"
+	log "github.com/micro/go-micro/v2/logger"
 	"net/http"
-	"tpush/internal/tchatroom"
+	"time"
 	"tpush/internal/twebsocket"
-
-	"github.com/micro/go-micro/v2/client"
 	push "tpush/srv/push/proto/push"
+	"tpush/web/route/plugins"
 )
 
 func handle(handler func(request *twebsocket.RequestData, response *twebsocket.ResponseData) error, w http.ResponseWriter, r *http.Request) {
@@ -32,37 +32,39 @@ func handle(handler func(request *twebsocket.RequestData, response *twebsocket.R
 	}
 }
 
-func SendMsgToClient(w http.ResponseWriter, r *http.Request) {
-	handle(func(request *twebsocket.RequestData, response *twebsocket.ResponseData) error {
-		var req tchatroom.SendToClientReq
-		if err := twebsocket.DecodeData(request, &req); err != nil {
-			return err
+var (
+	wrapper = plugins.NewClientWrapper()
+)
+
+func SendMsgToUser(w http.ResponseWriter, r *http.Request) {
+	var req push.SendToUserReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	cli := grpc.NewClient(
+		//client.Wrap(wrapper),
+	)
+	services, err := cli.Options().Registry.GetService("tpush.srv.push")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+	}
+	for i, service := range services {
+		log.Infof("service %d: %#v", i, service)
+		for j, node := range service.Nodes {
+			log.Infof("node %d: %#v", j, node)
 		}
+	}
 
-		// call the backend service
-		var buf bytes.Buffer
-		if err := json.NewEncoder(&buf).Encode(req.Data); err != nil {
-			return err
-		}
-		cliReq := &push.SendToClientReq{
-			Ids:  req.Ids,
-			Data: buf.Bytes(),
-		}
+	pushCli := push.NewPushService("tpush.srv.push", cli)
+	ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*1000)
+	rsp, err := pushCli.SendToUser(ctx, &req)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+	}
 
-		pushCli := push.NewPushService("tpush.srv.push", client.DefaultClient)
-		if _, err := pushCli.SendToClient(context.TODO(), cliReq); err != nil {
-			return err
-		}
-
-		rsp := &tchatroom.SendToClientRsp{}
-		response.Data = twebsocket.EncodeData(rsp)
-
-		return nil
-	}, w, r)
-
-	// decode the incoming request as json
-	var request twebsocket.RequestData
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := json.NewEncoder(w).Encode(rsp); err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}

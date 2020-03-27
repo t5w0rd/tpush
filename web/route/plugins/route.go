@@ -25,9 +25,9 @@ func (c *route) Call(ctx context.Context, req client.Request, rsp interface{}, o
 			var nodes []*registry.Node
 			for i, service := range services {
 				log.Infof("req.Service: %s", req.Service())
-				log.Infof("service %d: %+v", i, service)
+				log.Infof("service %d: %#v", i, service)
 				for j, node := range service.Nodes {
-					log.Infof("node %d: %+v", j, node)
+					log.Infof("node %d: %#v", j, node)
 				}
 				nodes = append(nodes, service.Nodes...)
 			}

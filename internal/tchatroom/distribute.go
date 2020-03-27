@@ -1,38 +1,42 @@
 package tchatroom
 
 import (
-	"github.com/go-redis/redis/v7"
+	"context"
+	"fmt"
+	"github.com/coreos/etcd/clientv3"
 	"time"
 )
 
 const (
-	refreshTtlPeriod = time.Second * 10
-	regChanBufSize   = 1000
+	etcdClientTimeout = time.Millisecond * 200
+	refreshTtlPeriod  = time.Second * 10
+	regChanBufSize    = 1000
 )
 
 type Distribute interface {
 	Register(key string)
 	Unregister(key string)
+	Run() (stopFunc func())
 }
 
-type distribute struct {
+type etcd struct {
 	nodeName string
-	store    *redis.Client
+	store    *clientv3.Client
 	ttl      time.Duration
 
 	regCh   chan string
 	unregCh chan string
 }
 
-func (d *distribute) Register(key string) {
+func (d *etcd) Register(key string) {
 	d.regCh <- key
 }
 
-func (d *distribute) Unregister(key string) {
+func (d *etcd) Unregister(key string) {
 	d.unregCh <- key
 }
 
-func (d *distribute) Run() (stopFunc func()) {
+func (d *etcd) Run() (stopFunc func()) {
 	stopCh := make(chan struct{})
 
 	stopFunc = func() {
@@ -40,7 +44,9 @@ func (d *distribute) Run() (stopFunc func()) {
 	}
 
 	go func() {
-		registry := make(map[string]struct{})
+		ttl := int64(d.ttl / time.Second)
+		registry := make(map[string]clientv3.LeaseID)
+
 		t := time.NewTicker(refreshTtlPeriod)
 
 		for {
@@ -49,14 +55,39 @@ func (d *distribute) Run() (stopFunc func()) {
 				return
 
 			case key := <-d.regCh:
-				d.store.Set(key, d.nodeName, d.ttl)
+				ctx, _ := context.WithTimeout(context.Background(), etcdClientTimeout)
+				leaseRsp, err := d.store.Grant(ctx, ttl)
+				if err != nil {
+					break
+				}
+				registry[key] = leaseRsp.ID
+
+				ctx, _ = context.WithTimeout(context.Background(), etcdClientTimeout)
+				k := fmt.Sprintf("%s/%s", key, d.nodeName)
+				_, err = d.store.Put(ctx, k, d.nodeName, clientv3.WithLease(leaseRsp.ID))
+				if err != nil {
+					break
+				}
 
 			case key := <-d.unregCh:
-				d.store.Del(key)
+				leaseID, ok := registry[key]
+				if !ok {
+					break
+				}
+				delete(registry, key)
+
+				ctx, _ := context.WithTimeout(context.Background(), etcdClientTimeout)
+				_, err := d.store.Revoke(ctx, leaseID)
+				if err != nil {
+					break
+				}
 
 			case <-t.C:
-				for key, _ := range registry {
-					d.store.Set(key, d.nodeName, d.ttl)
+				for _, leaseID := range registry {
+					ctx, _ := context.WithTimeout(context.Background(), etcdClientTimeout)
+					_, err := d.store.KeepAliveOnce(ctx, leaseID)
+					if err != nil {
+					}
 				}
 			}
 		}
@@ -64,11 +95,11 @@ func (d *distribute) Run() (stopFunc func()) {
 	return stopFunc
 }
 
-func NewRedisDistribute(nodeName string, store *redis.Client, ttl time.Duration) *distribute {
-	if ttl <= time.Second {
+func NewEtcdDistribute(nodeName string, store *clientv3.Client, ttl time.Duration) Distribute {
+	if ttl <= refreshTtlPeriod {
 		panic("ttl is too small")
 	}
-	d := &distribute{
+	d := &etcd{
 		nodeName: nodeName,
 		store:    store,
 		ttl:      ttl,

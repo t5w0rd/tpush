@@ -5,7 +5,6 @@ import (
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/web"
 	"net/http"
-	"tpush/internal/tchatroom"
 	"tpush/web/route/handler"
 )
 
@@ -15,12 +14,6 @@ func main() {
 		web.Name("tpush.web.route"),
 		web.Version("latest"),
 		web.Flags(
-			&cli.StringFlag{
-				Name:    "web_server_address",
-				Usage:   "Set the web server address",
-				EnvVars: []string{"WEB_SERVER_ADDRESS"},
-				Value:   tchatroom.Address,
-			},
 			&cli.StringFlag{
 				Name:    "log_level",
 				Usage:   "Set log level",
@@ -53,7 +46,7 @@ func main() {
 	service.Handle("/", http.FileServer(http.Dir("html")))
 
 	// register call handler
-	service.HandleFunc("/cmd/snd2cli", handler.SendMsgToClient)
+	service.HandleFunc("/cmd/snd2usr", handler.SendMsgToUser)
 
 	// run service
 	if err := service.Run(); err != nil {
