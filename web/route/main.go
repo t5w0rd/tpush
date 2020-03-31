@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/coreos/etcd/clientv3"
 	"github.com/micro/cli/v2"
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/web"
@@ -46,7 +47,20 @@ func main() {
 	service.Handle("/", http.FileServer(http.Dir("html")))
 
 	// register call handler
-	service.HandleFunc("/cmd/snd2usr", handler.SendMsgToUser)
+	storeAddress := "10.8.9.100:52379"
+	cfg := clientv3.Config{
+		Endpoints: []string{storeAddress},
+	}
+	c, err := clientv3.New(cfg)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	h := &handler.Handler{
+		Etcd: c,
+	}
+	service.HandleFunc("/cmd/snd2usr", h.SendMsgToUser)
 
 	// run service
 	if err := service.Run(); err != nil {

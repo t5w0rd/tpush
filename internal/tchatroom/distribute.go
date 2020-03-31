@@ -8,6 +8,10 @@ import (
 )
 
 const (
+	RegClientKeyFmt  = "/ids/%d"
+	RegUserKeyFmt    = "/uids/%d"
+	RegChannelKeyFmt = "/chans/%s"
+
 	etcdClientTimeout = time.Millisecond * 200
 	refreshTtlPeriod  = time.Second * 10
 	regChanBufSize    = 1000

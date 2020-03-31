@@ -88,3 +88,19 @@ func TestEtcd(t *testing.T) {
 	kv.Put(nil, "", "", clientv3.WithPrevKV())
 	time.Now()
 }
+
+func TestGetDistributeNodes(t *testing.T) {
+	storeAddress := "10.8.9.100:52379"
+	cfg := clientv3.Config{
+		Endpoints: []string{storeAddress},
+	}
+	c, err := clientv3.New(cfg)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	keys := []string{"/uids/1032"}
+	nodes := GetDistributeNodes(c, keys, time.Millisecond*1000)
+	t.Logf("%#v", nodes)
+}

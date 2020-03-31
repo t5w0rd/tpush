@@ -6,12 +6,6 @@ import (
 	"tpush/internal/twebsocket"
 )
 
-const (
-	regClientKeyFmt  = "/ids/%d"
-	regUserKeyFmt    = "/uids/%d"
-	regChannelKeyFmt = "/chans/%s"
-)
-
 var (
 	cliId int64 = 0
 )
@@ -43,8 +37,8 @@ func (r *Room) Login(cli twebsocket.Client, uid int64) {
 
 	if r.distribute != nil {
 		if id, ok := r.clients.Key(cli); ok {
-			r.distribute.Register(fmt.Sprintf(regClientKeyFmt, id))
-			r.distribute.Register(fmt.Sprintf(regUserKeyFmt, uid))
+			r.distribute.Register(fmt.Sprintf(RegClientKeyFmt, id))
+			r.distribute.Register(fmt.Sprintf(RegUserKeyFmt, uid))
 		}
 	}
 }
@@ -74,10 +68,10 @@ func (r *Room) RemoveClient(cli twebsocket.Client) {
 
 	if r.distribute != nil {
 		if id, ok := r.clients.Key(cli); ok {
-			r.distribute.Unregister(fmt.Sprintf(regClientKeyFmt, id))
+			r.distribute.Unregister(fmt.Sprintf(RegClientKeyFmt, id))
 		}
 		if uid, ok := r.who.User(cli); !ok {
-			r.distribute.Unregister(fmt.Sprintf(regUserKeyFmt, uid))
+			r.distribute.Unregister(fmt.Sprintf(RegUserKeyFmt, uid))
 		}
 	}
 }

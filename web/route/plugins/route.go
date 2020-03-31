@@ -17,11 +17,14 @@ type route struct {
 	client.Client
 }
 
+type selectNodeKey struct{}
+
 func (c *route) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
 	nOpts := append(opts, client.WithSelectOption(
 		// create a selector strategy
 		selector.WithStrategy(func(services []*registry.Service) selector.Next {
 			// flatten
+			log.Info(ctx.Value(123))
 			var nodes []*registry.Node
 			for i, service := range services {
 				log.Infof("req.Service: %s", req.Service())

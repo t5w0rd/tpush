@@ -3,40 +3,28 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/coreos/etcd/clientv3"
+	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/grpc"
 	log "github.com/micro/go-micro/v2/logger"
 	"net/http"
 	"time"
-	"tpush/internal/twebsocket"
+	"tpush/internal"
+	"tpush/internal/tchatroom"
 	push "tpush/srv/push/proto/push"
 	"tpush/web/route/plugins"
 )
-
-func handle(handler func(request *twebsocket.RequestData, response *twebsocket.ResponseData) error, w http.ResponseWriter, r *http.Request) {
-	var request twebsocket.RequestData
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	response := &twebsocket.ResponseData{
-		Cmd: request.Cmd,
-		Seq: request.Seq,
-	}
-	if err := handler(&request, response); err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-}
 
 var (
 	wrapper = plugins.NewClientWrapper()
 )
 
-func SendMsgToUser(w http.ResponseWriter, r *http.Request) {
+type Handler struct {
+	Etcd *clientv3.Client
+}
+
+func (h *Handler) SendMsgToUser(w http.ResponseWriter, r *http.Request) {
 	var req push.SendToUserReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), 500)
@@ -44,21 +32,21 @@ func SendMsgToUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cli := grpc.NewClient(
-		//client.Wrap(wrapper),
+		client.Wrap(wrapper),
 	)
-	services, err := cli.Options().Registry.GetService("tpush.srv.push")
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-	}
-	for i, service := range services {
-		log.Infof("service %d: %#v", i, service)
-		for j, node := range service.Nodes {
-			log.Infof("node %d: %#v", j, node)
-		}
-	}
 
 	pushCli := push.NewPushService("tpush.srv.push", cli)
 	ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*1000)
+
+	keys := make([]string, len(req.Uids))
+	for i, uid := range req.Uids {
+		keys[i] = fmt.Sprintf(tchatroom.RegUserKeyFmt, uid)
+	}
+
+	nodes := internal.GetDistributeNodes(h.Etcd, keys, time.Millisecond*1000)
+	// TODO:
+	log.Infof("%#v", nodes)
+
 	rsp, err := pushCli.SendToUser(ctx, &req)
 	if err != nil {
 		http.Error(w, err.Error(), 500)

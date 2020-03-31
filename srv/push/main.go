@@ -98,7 +98,7 @@ func main() {
 		return
 	}
 
-	d := tchatroom.NewEtcdDistribute("node1", c, time.Second*30)
+	d := tchatroom.NewEtcdDistribute(service.Server().Options().Id, c, time.Second*30)
 	d.Run()
 
 	service2 := tchatroom.NewService(
@@ -124,11 +124,13 @@ func main() {
 	push.RegisterPushHandler(service.Server(), h)
 
 	// Register Struct as Subscriber
-	micro.RegisterSubscriber("tpush.srv.push", service.Server(), new(subscriber.Push))
+	sub := &subscriber.Push{}
+	micro.RegisterSubscriber("tpush.srv.push", service.Server(), sub)
 
 	serviceDone := make(chan struct{})
 
 	// Run service
+	log.Infof(service.Server().Options().Id)
 	go func() {
 		if err := service.Run(); err != nil {
 			log.Fatal(err)
