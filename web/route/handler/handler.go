@@ -7,7 +7,6 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/grpc"
-	log "github.com/micro/go-micro/v2/logger"
 	"net/http"
 	"time"
 	"tpush/internal"
@@ -22,6 +21,11 @@ var (
 
 type Handler struct {
 	Etcd *clientv3.Client
+}
+
+type SendMsgRsp struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
 }
 
 func (h *Handler) SendMsgToUser(w http.ResponseWriter, r *http.Request) {
@@ -44,15 +48,14 @@ func (h *Handler) SendMsgToUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	nodes := internal.GetDistributeNodes(h.Etcd, keys, time.Millisecond*1000)
-	// TODO:
-	log.Infof("%#v", nodes)
-
-	rsp, err := pushCli.SendToUser(ctx, &req)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
+	for id, _ := range nodes {
+		newCtx := context.WithValue(ctx, plugins.SelectNodeKey{}, id)
+		go func(ctx context.Context) {
+			pushCli.SendToUser(ctx, &req)
+		}(newCtx)
 	}
 
-	if err := json.NewEncoder(w).Encode(rsp); err != nil {
+	if err := json.NewEncoder(w).Encode(&SendMsgRsp{}); err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}

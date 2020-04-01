@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
@@ -98,7 +99,9 @@ func main() {
 		return
 	}
 
-	d := tchatroom.NewEtcdDistribute(service.Server().Options().Id, c, time.Second*30)
+	opts := service.Server().Options()
+	nodeId := fmt.Sprintf("%s-%s", opts.Name, opts.Id)
+	d := tchatroom.NewEtcdDistribute(nodeId, c, time.Second*30)
 	d.Run()
 
 	service2 := tchatroom.NewService(
