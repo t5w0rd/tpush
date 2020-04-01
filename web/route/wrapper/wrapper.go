@@ -20,7 +20,7 @@ func (c *route) Call(ctx context.Context, req client.Request, rsp interface{}, o
 		// create a selector strategy
 		selector.WithStrategy(func(services []*registry.Service) selector.Next {
 			// flatten
-			for i, service := range services {
+			for _, service := range services {
 				//log.Infof("req.Service: %s", req.Service())
 				//log.Infof("service %d: %#v", i, service)
 				for _, node := range service.Nodes {
