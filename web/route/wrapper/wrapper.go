@@ -1,10 +1,10 @@
-package plugins
+package wrapper
 
 import (
 	"context"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
-	log "github.com/micro/go-micro/v2/logger"
+	//log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 )
 
@@ -21,8 +21,8 @@ func (c *route) Call(ctx context.Context, req client.Request, rsp interface{}, o
 		selector.WithStrategy(func(services []*registry.Service) selector.Next {
 			// flatten
 			for i, service := range services {
-				log.Infof("req.Service: %s", req.Service())
-				log.Infof("service %d: %#v", i, service)
+				//log.Infof("req.Service: %s", req.Service())
+				//log.Infof("service %d: %#v", i, service)
 				for _, node := range service.Nodes {
 					if node.Id == id {
 						return func() (*registry.Node, error) {
