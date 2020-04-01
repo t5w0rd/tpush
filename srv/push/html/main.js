@@ -113,7 +113,7 @@ window.addEventListener("load", function(evt) {
             print('<span style="color: blue;">['+rsp.data.id+':'+rsp.data.uid+':'+rsp.data.chan+'] '+rsp.data.data+'</span>');
             break;
           case "ping":
-            print('<span style="color: blue;">Ping</span>');
+            //print('<span style="color: blue;">Ping</span>');
             break;
           default:
             //print('<span style="color: blue;"></span>');;
