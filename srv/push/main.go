@@ -112,9 +112,9 @@ func main() {
 
 	go func() {
 		// 启动web服务
-		log.Infof("server [web] Listening on %s", tchatroom.Address)
+		log.Infof("Server [web] Listening on %s", tchatroom.Address)
 		if err := service2.Run(); err != nil {
-			log.Fatal("server [web] Listening err: ", err)
+			log.Fatal("Server [web] Listening err: ", err)
 		}
 		close(service2Done)
 	}()

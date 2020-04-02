@@ -12,6 +12,6 @@ spec:
     port: 80
     targetPort: 8080
   selector:
-    name: micro-api
+    name: route-web
     micro: service
   type: LoadBalancer

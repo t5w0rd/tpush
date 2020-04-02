@@ -36,4 +36,3 @@ spec:
               value: "etcd"
             - name: MICRO_REGISTRY_ADDRESS
               value: "etcd-cluster-client"
-        

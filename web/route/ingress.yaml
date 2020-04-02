@@ -1,0 +1,15 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: route
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - host: route.hkdev
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: route
+              servicePort: 80
