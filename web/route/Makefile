@@ -5,7 +5,7 @@ GOPATH:=$(shell go env GOPATH)
 .PHONY: build
 build:
 
-	go build -o route-web *.go
+	CGO_ENABLED="0" GOOS="linux" go build -o route-web *.go
 
 .PHONY: debug
 debug:
@@ -18,4 +18,4 @@ test:
 
 .PHONY: docker
 docker:
-	CGO_ENABLED="0" GOOS="linux" docker build . -t 10.9.19.140/test/route-web:latest
+	docker build . -t 10.9.19.140/test/route-web:latest
