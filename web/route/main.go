@@ -5,7 +5,6 @@ import (
 	"github.com/micro/cli/v2"
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/web"
-	"net/http"
 	"tpush/web/route/handler"
 )
 
@@ -42,9 +41,6 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-
-	// register html handler
-	service.Handle("/", http.FileServer(http.Dir("html")))
 
 	// register call handler
 	storeAddress := "10.8.9.100:52379"
