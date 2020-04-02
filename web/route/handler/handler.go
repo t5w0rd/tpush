@@ -37,7 +37,6 @@ func (h *Handler) SendMsgToUser(w http.ResponseWriter, r *http.Request) {
 	)
 
 	pushCli := push.NewPushService("tpush.srv.push", cli)
-	ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*1000)
 
 	keys := make([]string, len(req.Uids))
 	for i, uid := range req.Uids {
@@ -46,7 +45,8 @@ func (h *Handler) SendMsgToUser(w http.ResponseWriter, r *http.Request) {
 
 	nodes := internal.GetDistributeNodes(h.Etcd, keys, time.Millisecond*1000)
 	for id, _ := range nodes {
-		newCtx := context.WithValue(ctx, wrapper.SelectNodeKey{}, id)
+		ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*1000)
+		ctx = context.WithValue(ctx, wrapper.SelectNodeKey{}, id)
 		go func(ctx context.Context) {
 			data, err := json.Marshal(req.Data)
 			if err != nil {
@@ -61,7 +61,7 @@ func (h *Handler) SendMsgToUser(w http.ResponseWriter, r *http.Request) {
 				Uid:  req.Uid,
 			}
 			pushCli.SendToUser(ctx, pushReq)
-		}(newCtx)
+		}(ctx)
 	}
 
 	if err := json.NewEncoder(w).Encode(&route.SendMsgRsp{}); err != nil {
