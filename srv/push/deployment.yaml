@@ -18,35 +18,35 @@ spec:
       containers:
         - name: push
           command: [
-		"/push-srv",
-	  ]
+            "/push-srv",
+          ]
           image: 10.9.19.140/test/push-srv
           imagePullPolicy: Always
           ports:
-          - containerPort: 8080
-            name: push-port
-          - containerPort: 18080
-            name: push-ws-port
+            - containerPort: 8080
+              name: push-port
+            - containerPort: 18080
+              name: push-ws-port
           env:
-          - name: MICRO_SERVER_ADDRESS
-            value: "0.0.0.0:8080"
-          - name: MICRO_BROKER
-            value: "nats"
-          - name: MICRO_BROKER_ADDRESS
-            value: "nats-cluster"
-          - name: MICRO_REGISTRY
-            value: "etcd"
-          - name: MICRO_REGISTRY_ADDRESS
-            value: "etcd-cluster-client"
-          - name: WEB_SERVER_ADDRESS
-            value: "0.0.0.0:18080"
+            - name: MICRO_SERVER_ADDRESS
+              value: "0.0.0.0:8080"
+            - name: MICRO_BROKER
+              value: "nats"
+            - name: MICRO_BROKER_ADDRESS
+              value: "nats-cluster"
+            - name: MICRO_REGISTRY
+              value: "etcd"
+            - name: MICRO_REGISTRY_ADDRESS
+              value: "etcd-cluster-client"
+            - name: WEB_SERVER_ADDRESS
+              value: "0.0.0.0:18080"
         - name: health
           command: [
-        "/health",
-        "--health_address=0.0.0.0:8081",
-		"--server_name=tpush.srv.push",
-		"--server_address=0.0.0.0:8080"
-	  ]
+            "/health",
+            "--health_address=0.0.0.0:8081",
+            "--server_name=tpush.srv.push",
+            "--server_address=0.0.0.0:8080"
+          ]
           image: 10.9.19.140/test/health
           livenessProbe:
             httpGet:
