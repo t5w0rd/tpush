@@ -26,7 +26,7 @@ spec:
           - containerPort: 8080
             name: push-port
           - containerPort: 18080
-            name: push-ws_port
+            name: push_ws_port
           env:
           - name: MICRO_SERVER_ADDRESS
             value: "0.0.0.0:8080"
