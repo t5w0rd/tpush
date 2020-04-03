@@ -60,6 +60,7 @@ func (h *Handler) SendMsgToUser(w http.ResponseWriter, r *http.Request) {
 				Id:   req.Id,
 				Uid:  req.Uid,
 			}
+			log.Info("SendMsgToUser")
 			_, err = pushCli.SendToUser(ctx, pushReq)
 			if err != nil {
 				log.Error(err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
+	log "github.com/micro/go-micro/v2/logger"
 	"time"
 )
 
@@ -25,12 +26,14 @@ func GetDistributeNodes(cli *clientv3.Client, keys []string, timeout time.Durati
 	for i := 0; i < size; i++ {
 		go func(i int) {
 			defer close(dones[i])
-
+			log.Infof("keys: %#v", keys)
 			getRsp, err := cli.Get(ctxs[i], keys[i], clientv3.WithPrefix())
 			if err != nil {
+				log.Error(err)
 				return
 			}
 
+			log.Infof("kvs: %#v", getRsp.Kvs)
 			for _, kv := range getRsp.Kvs {
 				ch <- kv
 			}

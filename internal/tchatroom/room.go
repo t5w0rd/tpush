@@ -66,7 +66,7 @@ func (r *Room) RemoveClient(cli twebsocket.Client) {
 		if id, ok := r.clients.Key(cli); ok {
 			r.distribute.Unregister(fmt.Sprintf(RegClientKeyFmt, id))
 		}
-		if uid, ok := r.who.User(cli); !ok {
+		if uid, ok := r.who.User(cli); ok {
 			r.distribute.Unregister(fmt.Sprintf(RegUserKeyFmt, uid))
 		}
 	}
