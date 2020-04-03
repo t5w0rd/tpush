@@ -62,10 +62,6 @@ func (r *Room) ClientsOfUsers(uids []int64) twebsocket.ClientGroup {
 }
 
 func (r *Room) RemoveClient(cli twebsocket.Client) {
-	r.clients.RemoveByValue(cli)
-	r.where.RemoveUser(cli)
-	r.who.RemoveTag(cli)
-
 	if r.distribute != nil {
 		if id, ok := r.clients.Key(cli); ok {
 			r.distribute.Unregister(fmt.Sprintf(RegClientKeyFmt, id))
@@ -74,6 +70,10 @@ func (r *Room) RemoveClient(cli twebsocket.Client) {
 			r.distribute.Unregister(fmt.Sprintf(RegUserKeyFmt, uid))
 		}
 	}
+
+	r.clients.RemoveByValue(cli)
+	r.where.RemoveUser(cli)
+	r.who.RemoveTag(cli)
 }
 
 func (r *Room) ClientEnterChannel(cli twebsocket.Client, chs ...string) {

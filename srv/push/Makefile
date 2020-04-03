@@ -23,5 +23,5 @@ test:
 	go test -v ./... -cover
 
 .PHONY: docker
-docker:
+docker: build
 	docker build . -t 10.9.19.140/test/push-srv:latest
