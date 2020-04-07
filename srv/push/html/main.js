@@ -1,4 +1,4 @@
-let wsUri;
+let url;
 let output;
 let myuid;
 let myid;
@@ -11,7 +11,8 @@ let profile;
 
 
 window.addEventListener("load", function(evt) {
-  wsUri  = "ws://" + window.location.host + "/stream";
+  url = document.getElementById("url");
+  url.value = "ws://" + window.location.host + "/stream";
   output = document.getElementById("output");
   myuid = document.getElementById("myuid");
   myuid.value = parseInt(1000 + Math.random() * 100);
@@ -45,7 +46,8 @@ window.addEventListener("load", function(evt) {
 
   let newClient = function () {
     let client = {};
-    let conn = new WebSocket(wsUri);
+    console.log(url.value);
+    let conn = new WebSocket(url.value);
     client.conn = conn;
 
     let send = function (s) {
@@ -92,7 +94,7 @@ window.addEventListener("load", function(evt) {
     };
     conn.onclose = function (evt) {
       print('<span style="color: red;">OnClose</span>');
-      conn = null;
+      client.conn = null;
       clearTimeout(pingTimer);
       clearTimeout(recvTimer);
     };
@@ -170,7 +172,7 @@ window.addEventListener("load", function(evt) {
   };
 
   document.getElementById("open").onclick = function(evt) {
-    if (!client) {
+    if (!client.conn) {
       client = newClient();
     }
     return false;
