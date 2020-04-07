@@ -22,53 +22,150 @@ var (
 )
 
 type Handler struct {
-	Etcd *clientv3.Client
+	Etcd    *clientv3.Client
+	PushCli push.PushService
 }
 
-func (h *Handler) SendMsgToUser(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) SendToUser(w http.ResponseWriter, r *http.Request) {
 	var req route.SendToUserReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	cli := grpc.NewClient(
-		client.Wrap(clientWrapper),
-	)
-
-	pushCli := push.NewPushService("tpush.srv.push", cli)
-
-	keys := make([]string, len(req.Uids))
-	for i, uid := range req.Uids {
-		keys[i] = fmt.Sprintf(tchatroom.RegUserKeyFmt, uid)
+	if h.PushCli == nil {
+		opts := make([]client.Option, 0)
+		if h.Etcd != nil {
+			opts = append(opts, client.Wrap(clientWrapper))
+		}
+		cli := grpc.NewClient(opts...)
+		h.PushCli = push.NewPushService("tpush.srv.push", cli)
 	}
 
-	nodes := internal.GetDistributeNodes(h.Etcd, keys, time.Millisecond*1000)
-	for id, _ := range nodes {
+	if h.Etcd == nil {
+		data, err := json.Marshal(req.Data)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		pushReq := &push.SendToUserReq{
+			Uids: req.Uids,
+			Data: data,
+			Id:   req.Id,
+			Uid:  req.Uid,
+		}
+		log.Info("SendMsgToUser")
 		ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*1000)
-		ctx = context.WithValue(ctx, wrapper.SelectNodeKey{}, id)
-		go func(ctx context.Context) {
-			data, err := json.Marshal(req.Data)
-			if err != nil {
-				log.Error(err)
-				return
-			}
+		_, err = h.PushCli.SendToUser(ctx, pushReq)
+		if err != nil {
+			log.Error(err)
+		}
+	} else {
+		keys := make([]string, len(req.Uids))
+		for i, uid := range req.Uids {
+			keys[i] = fmt.Sprintf(tchatroom.RegUserKeyFmt, uid)
+		}
+		nodes := internal.GetDistributeNodes(h.Etcd, keys, time.Millisecond*1000)
+		for id, _ := range nodes {
+			ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*1000)
+			ctx = context.WithValue(ctx, wrapper.SelectNodeKey{}, id)
+			go func(ctx context.Context) {
+				data, err := json.Marshal(req.Data)
+				if err != nil {
+					log.Error(err)
+					return
+				}
 
-			pushReq := &push.SendToUserReq{
-				Uids: req.Uids,
-				Data: data,
-				Id:   req.Id,
-				Uid:  req.Uid,
-			}
-			log.Info("SendMsgToUser")
-			_, err = pushCli.SendToUser(ctx, pushReq)
-			if err != nil {
-				log.Error(err)
-			}
-		}(ctx)
+				pushReq := &push.SendToUserReq{
+					Uids: req.Uids,
+					Data: data,
+					Id:   req.Id,
+					Uid:  req.Uid,
+				}
+				log.Info("SendToUser")
+				_, err = h.PushCli.SendToUser(ctx, pushReq)
+				if err != nil {
+					log.Error(err)
+				}
+			}(ctx)
+		}
 	}
 
-	if err := json.NewEncoder(w).Encode(&route.SendMsgRsp{}); err != nil {
+	if err := json.NewEncoder(w).Encode(&route.SendToRsp{}); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+}
+
+func (h *Handler) SendToChannel(w http.ResponseWriter, r *http.Request) {
+	var req route.SendToChannelReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	opts := make([]client.Option, 0)
+	if h.Etcd != nil {
+		opts = append(opts, client.Wrap(clientWrapper))
+	}
+	cli := grpc.NewClient(opts...)
+
+	if h.PushCli == nil {
+		h.PushCli = push.NewPushService("tpush.srv.push", cli)
+	}
+
+	if h.Etcd == nil {
+		data, err := json.Marshal(req.Data)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		pushReq := &push.SendToChannelReq{
+			Chans: req.Chans,
+			Data: data,
+			Id:   req.Id,
+			Uid:  req.Uid,
+		}
+		log.Info("SendToChannel")
+		ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*1000)
+		_, err = h.PushCli.SendToChannel(ctx, pushReq)
+		if err != nil {
+			log.Error(err)
+		}
+	} else {
+		keys := make([]string, len(req.Chans))
+		for i, uid := range req.Chans {
+			keys[i] = fmt.Sprintf(tchatroom.RegChannelKeyFmt, uid)
+		}
+		nodes := internal.GetDistributeNodes(h.Etcd, keys, time.Millisecond*1000)
+		for id, _ := range nodes {
+			ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*1000)
+			ctx = context.WithValue(ctx, wrapper.SelectNodeKey{}, id)
+			go func(ctx context.Context) {
+				data, err := json.Marshal(req.Data)
+				if err != nil {
+					log.Error(err)
+					return
+				}
+
+				pushReq := &push.SendToChannelReq{
+					Chans: req.Chans,
+					Data: data,
+					Id:   req.Id,
+					Uid:  req.Uid,
+				}
+				log.Info("SendMsgToChannel")
+				_, err = h.PushCli.SendToChannel(ctx, pushReq)
+				if err != nil {
+					log.Error(err)
+				}
+			}(ctx)
+		}
+	}
+
+	if err := json.NewEncoder(w).Encode(&route.SendToRsp{}); err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}

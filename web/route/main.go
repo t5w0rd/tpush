@@ -20,15 +20,27 @@ func main() {
 				EnvVars: []string{"LOG_LEVEL"},
 				Value:   "debug",
 			},
+			&cli.BoolFlag{
+				Name:    "enable_distribute",
+				Usage:   "enable distribute",
+				EnvVars: []string{"ENABLE_DISTRIBUTE"},
+				Value:   false,
+			},
 		),
 	)
 
 	var loglevel log.Level
+	var enable_distribute bool
+
 	// initialise service
 	if err := service.Init(
 		web.Action(func(c *cli.Context) {
-			if f := c.String("log_level"); len(f) > 0 {
+			if f := c.String("enable_distribute"); len(f) > 0 {
 				loglevel, _ = log.GetLevel(f)
+			}
+
+			if f := c.String("enable_distribute"); len(f) > 0 {
+				enable_distribute = c.Bool("enable_distribute")
 			}
 		}),
 	); err != nil {
@@ -43,20 +55,26 @@ func main() {
 	}
 
 	// register call handler
-	storeAddress := "10.8.9.100:52379"
-	cfg := clientv3.Config{
-		Endpoints: []string{storeAddress},
-	}
-	c, err := clientv3.New(cfg)
-	if err != nil {
-		log.Fatal(err)
-		return
+	var c *clientv3.Client = nil
+	if enable_distribute {
+		storeAddress := "10.8.9.100:52379"
+		cfg := clientv3.Config{
+			Endpoints: []string{storeAddress},
+		}
+
+		var err error
+		c, err = clientv3.New(cfg)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
 	}
 
 	h := &handler.Handler{
 		Etcd: c,
 	}
-	service.HandleFunc("/cmd/snd2usr", h.SendMsgToUser)
+	service.HandleFunc("/cmd/snd2usr", h.SendToUser)
+	service.HandleFunc("/cmd/snd2chan", h.SendToChannel)
 
 	// run service
 	if err := service.Run(); err != nil {

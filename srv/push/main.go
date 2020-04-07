@@ -50,10 +50,17 @@ func main() {
 				EnvVars: []string{"LOG_LEVEL"},
 				Value:   "debug",
 			},
+			&cli.BoolFlag{
+				Name:    "enable_distribute",
+				Usage:   "enable distribute",
+				EnvVars: []string{"ENABLE_DISTRIBUTE"},
+				Value:   false,
+			},
 		),
 	)
 
 	var loglevel log.Level
+	var enable_distribute bool
 	// Initialise service
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
@@ -77,6 +84,10 @@ func main() {
 				loglevel, _ = log.GetLevel(f)
 			}
 
+			if f := c.String("enable_distribute"); len(f) > 0 {
+				enable_distribute = c.Bool("enable_distribute")
+			}
+
 			return nil
 		}),
 	)
@@ -89,24 +100,27 @@ func main() {
 	}
 
 	// websocket service
-	storeAddress := "10.8.9.100:52379"
-	cfg := clientv3.Config{
-		Endpoints: []string{storeAddress},
-	}
-	c, err := clientv3.New(cfg)
-	if err != nil {
-		log.Fatal(err)
-		return
+	opts := make([]tchatroom.Option, 0)
+	if enable_distribute {
+		storeAddress := "10.8.9.100:52379"
+		cfg := clientv3.Config{
+			Endpoints: []string{storeAddress},
+		}
+		c, err := clientv3.New(cfg)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		o := service.Server().Options()
+		nodeId := fmt.Sprintf("%s-%s", o.Name, o.Id)
+		d := tchatroom.NewEtcdDistribute(nodeId, c, time.Second*30)
+		d.Run()
+
+		opts = append(opts, tchatroom.WithDistribute(d))
 	}
 
-	opts := service.Server().Options()
-	nodeId := fmt.Sprintf("%s-%s", opts.Name, opts.Id)
-	d := tchatroom.NewEtcdDistribute(nodeId, c, time.Second*30)
-	d.Run()
-
-	service2 := tchatroom.NewService(
-		tchatroom.WithDistribute(d),
-	)
+	service2 := tchatroom.NewService(opts...)
 
 	service2Done := make(chan struct{})
 

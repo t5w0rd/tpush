@@ -7,7 +7,14 @@ type SendToUserReq struct {
 	Uid  int64       `json:"uid,omitempty"`
 }
 
-type SendMsgRsp struct {
+type SendToChannelReq struct {
+	Chans []string    `json:"chans"`
+	Data  interface{} `json:"data,omitempty"`
+	Id    int64       `json:"id,omitempty"`
+	Uid   int64       `json:"uid,omitempty"`
+}
+
+type SendToRsp struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 }
