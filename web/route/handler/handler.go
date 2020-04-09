@@ -67,6 +67,7 @@ func (h *Handler) SendToUser(w http.ResponseWriter, r *http.Request) {
 			keys[i] = fmt.Sprintf(tchatroom.RegUserKeyFmt, uid)
 		}
 		nodes := internal.GetDistributeNodes(h.Etcd, keys, time.Millisecond*1000)
+		log.Infof("Nodes: %#v", nodes)
 		for id, _ := range nodes {
 			ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*1000)
 			ctx = context.WithValue(ctx, wrapper.SelectNodeKey{}, id)
@@ -140,6 +141,7 @@ func (h *Handler) SendToChannel(w http.ResponseWriter, r *http.Request) {
 			keys[i] = fmt.Sprintf(tchatroom.RegChannelKeyFmt, uid)
 		}
 		nodes := internal.GetDistributeNodes(h.Etcd, keys, time.Millisecond*1000)
+		log.Infof("Nodes: %#v", nodes)
 		for id, _ := range nodes {
 			ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*1000)
 			ctx = context.WithValue(ctx, wrapper.SelectNodeKey{}, id)

@@ -35,31 +35,29 @@ func GetDistributeNodes(cli *clientv3.Client, keys []string, timeout time.Durati
 
 			log.Infof("kvs: %#v", getRsp.Kvs)
 			for _, kv := range getRsp.Kvs {
+				log.Infof("Key: %s, Value: %s", kv.Key, kv.Value)
 				ch <- kv
 			}
 		}(i)
 	}
 
-	// map writer
-	ret := make(map[string]string)
-	quit := make(chan struct{})
 	go func() {
-		for {
-			select {
-			case <-quit:
-				return
-
-			case kv := <-ch:
-				ret[string(kv.Value)] = string(kv.Key)
-			}
+		// wait all
+		for _, done := range dones {
+			<-done
 		}
+		close(ch)
 	}()
 
-	// wait all
-	for _, done := range dones {
-		<-done
+	// map writer
+	ret := make(map[string]string)
+	for {
+		kv, ok := <-ch
+		if !ok {
+			break
+		}
+		ret[string(kv.Value)] = string(kv.Key)
 	}
-	quit <- struct{}{}
 
 	return ret
 }
