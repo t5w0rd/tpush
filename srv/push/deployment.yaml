@@ -25,7 +25,7 @@ spec:
           ports:
             - containerPort: 8080
               name: push-port
-            - containerPort: 18080
+            - containerPort: 8081
               name: push-ws-port
           env:
             - name: MICRO_SERVER_ADDRESS
@@ -46,12 +46,12 @@ spec:
             "/health",
             "--health_address=0.0.0.0:18080",
             "--server_name=tpush.srv.push",
-            "--server_address=0.0.0.0:8081"
+            "--server_address=0.0.0.0:8080"
           ]
           image: 10.9.19.140/test/health
           livenessProbe:
             httpGet:
               path: /health
-              port: 8081
+              port: 18080
             initialDelaySeconds: 3
             periodSeconds: 3
