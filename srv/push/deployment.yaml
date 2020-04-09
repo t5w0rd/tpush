@@ -40,6 +40,10 @@ spec:
               value: "etcd-cluster-client"
             - name: WEB_SERVER_ADDRESS
               value: "0.0.0.0:8081"
+            - name: ENABLE_DISTRIBUTE
+              value: "true"
+            - name: LOG_LEVEL
+              value: info
 
         - name: health
           command: [
