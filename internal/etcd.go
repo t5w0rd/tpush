@@ -26,7 +26,7 @@ func GetDistributeNodes(cli *clientv3.Client, keys []string, timeout time.Durati
 	for i := 0; i < size; i++ {
 		go func(i int) {
 			defer close(dones[i])
-			log.Infof("keys: %#v", keys)
+			log.Infof("PrefixKey: %#v", keys[i])
 			getRsp, err := cli.Get(ctxs[i], keys[i], clientv3.WithPrefix())
 			if err != nil {
 				log.Error(err)
