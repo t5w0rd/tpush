@@ -10,8 +10,8 @@ spec:
   ports:
   - name: http
     port: 80
-    targetPort: 18080
+    targetPort: 8081
   selector:
     name: push-srv
     micro: service
-  type: LoadBalancer
+  type: ClusterIP

@@ -63,18 +63,18 @@ func (cg *clientGroup) Write(cmd string, seq int64, data interface{}, code int32
 		Data: EncodeData(data),
 	}
 
-	log.Info("clientgroup begin to encode")
+	log.Debug("clientgroup begin to encode")
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(rspData); err != nil {
 		return
 	}
 
-	log.Info("clientgroup begin to write")
+	log.Debug("clientgroup begin to write")
 	for _, c := range cg.clients {
 		cli := c.(*client)
 		cli.write(buf.Bytes(), immed)
 	}
-	log.Info("clientgroup write complete")
+	log.Debug("clientgroup write complete")
 }
 
 func NewClientGroup(clients []interface{}) ClientGroup {
@@ -201,10 +201,10 @@ func (c *client) ping() error {
 }
 
 func (c *client) run() error {
-	log.Debug("run start")
+	log.Info("run start")
 	defer func() {
 		c.shutdown()
-		log.Debug("run complete")
+		log.Info("run complete")
 	}()
 
 	if err := c.svc.openHandler(c); err != nil {

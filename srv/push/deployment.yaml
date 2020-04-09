@@ -39,13 +39,14 @@ spec:
             - name: MICRO_REGISTRY_ADDRESS
               value: "etcd-cluster-client"
             - name: WEB_SERVER_ADDRESS
-              value: "0.0.0.0:18080"
+              value: "0.0.0.0:8081"
+
         - name: health
           command: [
             "/health",
-            "--health_address=0.0.0.0:8081",
+            "--health_address=0.0.0.0:18080",
             "--server_name=tpush.srv.push",
-            "--server_address=0.0.0.0:8080"
+            "--server_address=0.0.0.0:8081"
           ]
           image: 10.9.19.140/test/health
           livenessProbe:
@@ -54,4 +55,3 @@ spec:
               port: 8081
             initialDelaySeconds: 3
             periodSeconds: 3
-

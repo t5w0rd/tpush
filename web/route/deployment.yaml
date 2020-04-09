@@ -36,3 +36,7 @@ spec:
               value: "etcd"
             - name: MICRO_REGISTRY_ADDRESS
               value: "etcd-cluster-client"
+            - name: ENABLE_DISTRIBUTE
+              value: true
+            - name: LOG_LEVEL
+              value: info

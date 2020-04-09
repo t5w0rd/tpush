@@ -110,7 +110,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 		return
 	}
-	log.Debug("new client has connected")
+	log.Info("new client has connected", r.Header)
 
 	cli := newClient(s, conn, s.recvWait, s.sendWait, false)
 	s.mu.Lock()
