@@ -3,6 +3,7 @@ package tchatroom
 import (
 	"errors"
 	log "github.com/micro/go-micro/v2/logger"
+	"net/http"
 	"time"
 	"tpush/internal/twebsocket"
 )
@@ -17,6 +18,10 @@ type clientDataKey struct{}
 
 type clientData struct {
 	id int64
+}
+
+func (h *handler) OpUpgrade(req *http.Request) error {
+	return nil
 }
 
 func (h *handler) OnOpen(cli twebsocket.Client) error {

@@ -64,10 +64,11 @@ func NewService(opts ...Option) *Service {
 	mux.HandleFunc(CmdSendToChan, h.SendToChan)
 	mux.HandleFunc(CmdRecvData, h.RecvData)
 	ws := twebsocket.Server(
-		RecvTimeout,
-		mux,
-		h.OnOpen,
-		h.OnClose,
+		twebsocket.WithServeMux(mux),
+		twebsocket.WithRecvTimeout(RecvTimeout),
+		twebsocket.WithUpgradeHandler(h.OpUpgrade),
+		twebsocket.WithOpenHandler(h.OnOpen),
+		twebsocket.WithCloseHandler(h.OnClose),
 	)
 	ws.StartWritePumps(runtime.NumCPU())
 

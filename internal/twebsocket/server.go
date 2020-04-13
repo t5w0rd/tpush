@@ -23,8 +23,12 @@ var (
 			return true
 		},
 	}
+
+	defaultServeMux    = newDefaultServeMux()
+	defaultSendTimeout = time.Second * 10
 )
 
+type UpgradeHandler func(req *http.Request) error
 type OpenHandler func(cli Client) error
 type CloseHandler func(cli Client)
 type HandlerFunc func(req Request, rsp Response) error
@@ -53,10 +57,6 @@ func UnsupportedCommandHandler() HandlerFunc {
 type ServeMux struct {
 	mu sync.RWMutex
 	m  map[string]HandlerFunc
-}
-
-func NewServeMux() *ServeMux {
-	return new(ServeMux)
 }
 
 func (mux *ServeMux) HandleFunc(cmd string, handler HandlerFunc) {
@@ -90,13 +90,22 @@ func (mux *ServeMux) Handler(cmd string) (h HandlerFunc) {
 	}
 }
 
-type server struct {
-	mux      *ServeMux
-	recvWait time.Duration
-	sendWait time.Duration
+func NewServeMux() *ServeMux {
+	return new(ServeMux)
+}
 
-	openHandler  OpenHandler
-	closeHandler CloseHandler
+func pingHandler(req Request, rsp Response) error {
+	return nil
+}
+
+func newDefaultServeMux() *ServeMux {
+	mux := NewServeMux()
+	mux.HandleFunc("ping", pingHandler)
+	return mux
+}
+
+type server struct {
+	opt   *Options
 
 	ready chan *client
 
@@ -105,6 +114,12 @@ type server struct {
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if s.opt.upgradeHandler != nil {
+		if err := s.opt.upgradeHandler(r); err != nil {
+			log.Error(err)
+			return
+		}
+	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Error(err)
@@ -112,7 +127,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Info("new client has connected", r.Header)
 
-	cli := newClient(s, conn, s.recvWait, s.sendWait, false)
+	cli := newClient(s, conn, s.opt.recvTimeout, s.opt.sendTimeout, false)
 	s.mu.Lock()
 	s.clients[cli] = struct{}{}
 	s.mu.Unlock()
@@ -140,15 +155,22 @@ func (s *server) StartWritePumps(workers int) {
 	}
 }
 
-func Server(recvWait time.Duration, mux *ServeMux, openHandler OpenHandler, closeHandler CloseHandler) WritePumpHttpHandler {
+func Server(opts ...Option) WritePumpHttpHandler {
+	opt := new(Options)
+
+	for _, o := range opts {
+		o(opt)
+	}
+
+	if opt.mux == nil {
+		opt.mux = defaultServeMux
+	}
+	if opt.sendTimeout == 0 {
+		opt.sendTimeout = defaultSendTimeout
+	}
+
 	s := &server{
-		mux:      mux,
-		recvWait: recvWait,
-		sendWait: time.Second * 10,
-
-		openHandler:  openHandler,
-		closeHandler: closeHandler,
-
+		opt: opt,
 		ready:   make(chan *client, 100000),
 		clients: make(map[*client]struct{}),
 	}

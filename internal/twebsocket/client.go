@@ -93,8 +93,8 @@ type client struct {
 	closed      bool
 	sendMu      sync.Mutex
 	immedWriter bytes.Buffer
-	recvWait    time.Duration
-	sendWait    time.Duration
+	recvTimeout time.Duration
+	sendTimeout time.Duration
 }
 
 func (c *client) ContextValue(key interface{}) interface{} {
@@ -121,7 +121,9 @@ func (c *client) shutdown() {
 	c.closed = true
 	c.mu.Unlock()
 
-	c.svc.closeHandler(c)
+	if c.svc.opt.closeHandler != nil {
+		c.svc.opt.closeHandler(c)
+	}
 }
 
 func (c *client) Write(cmd string, seq int64, data interface{}, code int32, msg string, immed bool) {
@@ -185,8 +187,8 @@ func (c *client) send(data []byte) error {
 	log.Debugf("%09d sent Response: %s", time.Now().UnixNano()%int64(time.Second), data)
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
-	if c.sendWait > 0 {
-		c.conn.SetWriteDeadline(time.Now().Add(c.sendWait))
+	if c.sendTimeout > 0 {
+		c.conn.SetWriteDeadline(time.Now().Add(c.sendTimeout))
 	}
 	return c.conn.WriteMessage(websocket.TextMessage, data)
 }
@@ -194,8 +196,8 @@ func (c *client) send(data []byte) error {
 func (c *client) ping() error {
 	c.sendMu.Lock()
 	defer c.sendMu.Unlock()
-	if c.sendWait > 0 {
-		c.conn.SetWriteDeadline(time.Now().Add(c.sendWait))
+	if c.sendTimeout > 0 {
+		c.conn.SetWriteDeadline(time.Now().Add(c.sendTimeout))
 	}
 	return c.conn.WriteMessage(websocket.PingMessage, nil)
 }
@@ -207,16 +209,18 @@ func (c *client) run() error {
 		log.Info("run complete")
 	}()
 
-	if err := c.svc.openHandler(c); err != nil {
-		return err
+	if c.svc.opt.openHandler != nil {
+		if err := c.svc.opt.openHandler(c); err != nil {
+			return err
+		}
 	}
 
 	var buf bytes.Buffer
 	en := json.NewEncoder(&buf)
 	for {
 		var reqDatas []*RequestData
-		if c.recvWait > 0 {
-			c.conn.SetReadDeadline(time.Now().Add(c.recvWait))
+		if c.recvTimeout > 0 {
+			c.conn.SetReadDeadline(time.Now().Add(c.recvTimeout))
 		}
 
 		if err := c.conn.ReadJSON(&reqDatas); err != nil {
@@ -237,7 +241,7 @@ func (c *client) run() error {
 			}
 			log.Debugf("%09d received request: %v", time.Now().UnixNano()%int64(time.Second), reqData)
 
-			handler := c.svc.mux.Handler(reqData.Cmd)
+			handler := c.svc.opt.mux.Handler(reqData.Cmd)
 			req := &request{
 				data: reqData,
 				cli:  c,
@@ -273,12 +277,12 @@ func newClient(svc *server, conn *websocket.Conn, recvWait time.Duration, sendWa
 	}
 
 	c := &client{
-		svc:      svc,
-		conn:     conn,
-		ctx:      context.Background(),
-		closed:   false,
-		recvWait: recvWait,
-		sendWait: sendWait,
+		svc:         svc,
+		conn:        conn,
+		ctx:         context.Background(),
+		closed:      false,
+		recvTimeout: recvWait,
+		sendTimeout: sendWait,
 	}
 	return c
 }
