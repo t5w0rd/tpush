@@ -35,7 +35,7 @@ func main() {
 	// initialise service
 	if err := service.Init(
 		web.Action(func(c *cli.Context) {
-			if f := c.String("enable_distribute"); len(f) > 0 {
+			if f := c.String("log_level"); len(f) > 0 {
 				loglevel, _ = log.GetLevel(f)
 			}
 
