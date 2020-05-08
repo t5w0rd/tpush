@@ -125,9 +125,9 @@ func (h *Handler) SendToChannel(w http.ResponseWriter, r *http.Request) {
 
 		pushReq := &push.SendToChannelReq{
 			Chans: req.Chans,
-			Data: data,
-			Id:   req.Id,
-			Uid:  req.Uid,
+			Data:  data,
+			Id:    req.Id,
+			Uid:   req.Uid,
 		}
 		log.Info("SendToChannel")
 		ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*1000)
@@ -154,9 +154,9 @@ func (h *Handler) SendToChannel(w http.ResponseWriter, r *http.Request) {
 
 				pushReq := &push.SendToChannelReq{
 					Chans: req.Chans,
-					Data: data,
-					Id:   req.Id,
-					Uid:  req.Uid,
+					Data:  data,
+					Id:    req.Id,
+					Uid:   req.Uid,
 				}
 				log.Info("SendMsgToChannel")
 				_, err = h.PushCli.SendToChannel(ctx, pushReq)

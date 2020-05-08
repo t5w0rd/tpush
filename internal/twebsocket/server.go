@@ -105,7 +105,7 @@ func newDefaultServeMux() *ServeMux {
 }
 
 type server struct {
-	opt   *Options
+	opt *Options
 
 	ready chan *client
 
@@ -170,7 +170,7 @@ func Server(opts ...Option) WritePumpHttpHandler {
 	}
 
 	s := &server{
-		opt: opt,
+		opt:     opt,
 		ready:   make(chan *client, 100000),
 		clients: make(map[*client]struct{}),
 	}

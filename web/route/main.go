@@ -5,11 +5,13 @@ import (
 	"github.com/micro/cli/v2"
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/web"
+	"net/http/pprof"
 	"tpush/options"
 	"tpush/web/route/handler"
 )
 
 func main() {
+
 	// create new web service
 	service := web.NewService(
 		web.Name("tpush.web.route"),
@@ -76,6 +78,12 @@ func main() {
 	}
 	service.HandleFunc("/cmd/snd2usr", h.SendToUser)
 	service.HandleFunc("/cmd/snd2chan", h.SendToChannel)
+
+	service.HandleFunc("/debug/pprof/", pprof.Index)
+	service.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	service.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	service.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	service.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
 	// run service
 	if err := service.Run(); err != nil {

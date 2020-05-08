@@ -8,8 +8,8 @@ type Options struct {
 	sendTimeout time.Duration
 
 	upgradeHandler UpgradeHandler
-	openHandler  OpenHandler
-	closeHandler CloseHandler
+	openHandler    OpenHandler
+	closeHandler   CloseHandler
 }
 
 type Option func(opt *Options)
