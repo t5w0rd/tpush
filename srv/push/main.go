@@ -9,6 +9,7 @@ import (
 	_ "net/http/pprof"
 	"time"
 	"tpush/internal/tchatroom"
+	"tpush/options"
 	"tpush/srv/push/handler"
 	push "tpush/srv/push/proto/push"
 	"tpush/srv/push/subscriber"
@@ -102,7 +103,7 @@ func main() {
 	// websocket service
 	opts := make([]tchatroom.Option, 0)
 	if enable_distribute {
-		storeAddress := "10.8.9.100:52379"
+		storeAddress := options.EtcdAddress
 		cfg := clientv3.Config{
 			Endpoints: []string{storeAddress},
 		}

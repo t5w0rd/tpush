@@ -3,7 +3,7 @@ package internal
 import (
 	"github.com/go-redis/redis/v7"
 	log "github.com/micro/go-micro/v2/logger"
-	"tpush/internal/options"
+	"tpush/options"
 )
 
 func NewCache(options options.RedisOptions) (ret *redis.Client) {

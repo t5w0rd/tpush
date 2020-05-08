@@ -5,6 +5,7 @@ import (
 	"github.com/micro/cli/v2"
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/web"
+	"tpush/options"
 	"tpush/web/route/handler"
 )
 
@@ -57,7 +58,7 @@ func main() {
 	// register call handler
 	var c *clientv3.Client = nil
 	if enable_distribute {
-		storeAddress := "10.8.9.100:52379"
+		storeAddress := options.EtcdAddress
 		cfg := clientv3.Config{
 			Endpoints: []string{storeAddress},
 		}
